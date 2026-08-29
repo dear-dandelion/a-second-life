@@ -1,0 +1,34 @@
+# dependencies
+node_modules/
+.npm-cache/
+.deno-cache/
+.tools/
+*.tgz
+
+# secrets & local env (never commit)
+.env
+.env.*
+!.env.example
+supabase/.branches/
+supabase/.temp/
+supabase/.env.local
+
+# test & coverage
+coverage/
+*.log
+
+# Vercel / Cloudflare / build artifacts
+.vercel/
+.next/
+.vinext/
+.wrangler/
+dist/
+tsconfig.tsbuildinfo
+
+# tooling & local configs
+.claude/
+.openai/
+
+# archives & temp
+*.zip
+.tmp-verify/

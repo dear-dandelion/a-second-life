@@ -1,0 +1,23 @@
+{
+  "name": "she-nicest-backend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "test:edge": "deno test --config supabase/functions/deno.json supabase/functions/_shared/*_test.ts",
+    "check": "deno check --config supabase/functions/deno.json supabase/functions/*/index.ts",
+    "knowledge:dry-run": "node scripts/import-knowledge.mjs --dry-run",
+    "knowledge:import": "node scripts/import-knowledge.mjs",
+    "knowledge:publish": "node scripts/import-knowledge.mjs --publish",
+    "supabase:start": "npx supabase start",
+    "supabase:stop": "npx supabase stop",
+    "supabase:reset": "npx supabase db reset",
+    "functions:serve": "npx supabase functions serve --env-file supabase/.env.local"
+  },
+  "devDependencies": {
+    "deno": "2.9.6",
+    "pg-query-emscripten": "5.1.0",
+    "supabase": "2.116.0"
+  }
+}

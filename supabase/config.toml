@@ -1,0 +1,48 @@
+project_id = "she-nicest"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/**"]
+jwt_expiry = 3600
+enable_signup = true
+
+[functions.chat]
+verify_jwt = true
+
+[functions.speech-asr]
+verify_jwt = true
+
+[functions.speech-tts]
+verify_jwt = true
+
+[functions.health-card-confirm]
+verify_jwt = true
+
+[functions.report-preview]
+verify_jwt = true
+
+[functions.recommendations]
+verify_jwt = true
+
+[functions.monthly-summary]
+verify_jwt = true
+
+[functions.ai-rephrase]
+verify_jwt = true
