@@ -1,122 +1,80 @@
-# She Nicest MVP 后端
+# 盛年 ShengNian 🌱
 
-本目录是基于 Supabase 的 MVP 后端实现，覆盖 AI 聊天、文字/语音输入、RAG、健康卡片确认、月度数据、今日推荐、就医报告预览和「AI 帮我说」。交流广场、好友列表、消息列表、成就墙及其他仅展示页面不提供后端接口，继续使用前端静态数据。
+> **更年期AI陪伴助手，帮您穿越灰烬，涅槃重生。**
 
-模型密钥目前没有写入项目。未配置模型时，生产环境会明确返回 `MODEL_NOT_CONFIGURED`；本地可显式开启 `AI_MOCK_MODE=true` 完成界面联调。
+盛年是 **SheNicest 黑客松软件项目**的参赛作品，本次交付的是 **MVP 版本**：一个面向更年期女性的 AI 陪伴与健康记录应用。名叫**小年**的 AI 助手会认真倾听你说的每一件大事小事，陪你聊天、安抚情绪、给出温和的健康建议，并把聊天中提到的身体变化整理成**健康卡片**，帮你悄悄记录这段生命里的真实变化。
 
-## 目录
+## 它解决了什么问题
 
-- `supabase/migrations/`：数据表、RLS、权限、事务 RPC 和 RAG 检索函数。
-- `supabase/functions/`：Supabase Edge Functions。
-- `scripts/import-knowledge.mjs`：本地 Markdown 知识库导入工具。
-- `tests/`：知识库分块和 SQL 语法测试。
-- `前后端接口设计.md`：冻结的完整请求、响应和 SSE 事件契约。
+更年期女性的身体与情绪变化，往往无人倾听、难以开口、更无从记录。盛年用**AI 对话**降低记录门槛：说出来的话会被小年理解、整理成结构化健康记录（潮热、睡眠、情绪、用药……），经用户确认后入卡；长期积累的数据可以生成**月度总结**和**就医报告**，让医生和家人都能看懂你的状态。
 
-## 已实现的后端能力
+## MVP 已实现的功能
 
-| 能力 | 接口 | 角色 |
-| --- | --- | --- |
-| AI 多轮聊天、RAG、草案、导航 | `POST /functions/v1/chat`（SSE） | 两类用户；健康数据仅本人 |
-| 录音转文字 | `POST /functions/v1/speech-asr` | 两类用户 |
-| 简短文本转语音 | `POST /functions/v1/speech-tts` | 两类用户 |
-| 草案确认并写健康卡片 | `POST /functions/v1/health-card-confirm` | 仅本人 |
-| 今日行动推荐 | `GET /functions/v1/recommendations` | 本人个性化，其他人默认推荐 |
-| 月度总结懒生成 | `POST /functions/v1/monthly-summary` | 仅本人 |
-| 就医报告聚合预览 | `POST /functions/v1/report-preview` | 仅本人 |
-| AI 帮我说 | `POST /functions/v1/ai-rephrase` | 两类用户 |
-| 单日健康卡片读取 | RPC `get_health_record(target_date)` | 仅本人 |
-| 健康卡片手工保存 | RPC `save_health_record(target_date,payload)` | 仅本人 |
-| 月度四维统计 | RPC `get_monthly_stats(target_month)` | 仅本人 |
-| 报告时间覆盖范围 | RPC `get_report_coverage()` | 仅本人 |
+### AI 核心能力（后端已全部上线并验证）
 
-最终 PDF 由前端固定模板生成、下载和系统分享，不上传 Supabase；MVP 不保存报告文件。月度总结采用首次访问时生成并缓存，不配置 Cron。好友、帖子、成就和未实现入口不建表、不埋点。
+| 能力 | 说明 |
+| --- | --- |
+| AI 多轮陪伴对话 | 人设"小年"，流式回复，情绪安抚 + 基于审核知识库的健康建议；危急表达（胸痛/呼吸困难等）自动触发紧急安全提示 |
+| RAG 知识检索 | 56 篇审核资料、463 个分块向量化入库，回复自动引用权威来源（WHO、协和医生访谈、省级妇幼保健院等） |
+| 健康信息提取 | 从对话原话提取 12 类记录（症状/睡眠/情绪/月经/体重/食欲/运动/饮食/用药/生活事件/就医诉求/其他），只提取明确事实，不诊断不补全 |
+| 健康卡片确认 | 提取结果弹窗逐条勾选，确认后写入当日卡片；"其他"字段支持多次累积 |
+| 健康卡片编辑 | 单日卡片查看/手动编辑/保存（聊天页与月度页都有入口） |
+| 月度总结 | 按月懒生成：概览、四维统计、本月好事 |
+| 就医报告 | 按 1/3/6 个月聚合健康记录，生成可编辑的预览报告 |
+| 今日行动推荐 | 根据记录个性化推荐行动 |
+| AI 帮我说 | 把难开口的话整理成温和而坚定的表达 |
+| 语音合成/转写 | 后端 TTS（CosyVoice）/ASR（Fun-ASR）已部署，**前端接入待开发** |
 
-## 本地启动
+### 前端页面（Next.js 16）
 
-要求 Node.js 20+、Docker Desktop，以及可运行的 Supabase CLI。
+今天的我（首页 + 今日推荐）、絮絮叨叨（AI 聊天）、健康卡片编辑、这个月的我（统计 + 月度总结）、就医报告、AI 帮我说；交流广场、我的消息、成就墙为 MVP 演示数据。当前 MVP 采用**共享演示账号免登录**模式，打开即用。
 
-```powershell
-npm.cmd install
-Copy-Item supabase/.env.example supabase/.env.local
-npm.cmd run supabase:start
-npm.cmd run supabase:reset
-npm.cmd run functions:serve
+## 技术架构
+
+- **前端**：Next.js 16 + React 19 + Tailwind，部署在 Vercel
+- **后端**：Supabase（PostgreSQL + RLS 行级安全 + 8 个 Edge Functions + pgvector 向量检索）
+- **大模型**：阿里云百炼（Qwen-Plus 对话 / Qwen-Flash 提取 / text-embedding-v4 向量 / CosyVoice + Fun-ASR 语音）
+- **安全**：健康数据按用户隔离；提取"只记录事实、不诊断"；密钥只存于服务端 secrets
+
+## 目录结构
+
+```
+supabase/     后端：migrations（建库/RLS/RPC）+ functions（8 个 Edge Functions）
+frontend/     前端：Next.js 应用
+scripts/      知识库导入与发布工具
+tests/        知识库分块与 SQL 语法测试
+*.md          产品需求、技术方案、接口设计等文档
 ```
 
-将本地 `supabase status` 输出的 URL、anon key 和 service role key 填入 `supabase/.env.local`。前端使用 Supabase Auth 获取 access token，所有 Edge Function 请求均发送：
+## 本地开发
 
-```http
-Authorization: Bearer <access_token>
+```bash
+# 前端（默认 mock 演示模式；连真实后端把 frontend/.env.local 中 USE_MOCKS 改为 false）
+cd frontend && npm install && npm run dev -p 3002
+
+# 后端（需 Supabase CLI 与 Docker；云端部署见 supabase/ 配置）
+npx supabase start
 ```
 
-Supabase Auth 不另做登录接口。演示用测试手机号和固定验证码需在 Supabase Dashboard 的 Phone Provider 测试号码中配置，验证码不得写入前端或仓库。
+> ⚠️ 本仓库是公开的：任何密钥请只放在本地 `.env*` 文件中（已配置忽略规则，提交前另有密钥扫描钩子兜底）。
 
-## 环境变量
+## 未来有待开发
 
-Edge Functions 使用 `supabase/.env.example` 作为模板：
+- 语音交互前端接入（AI 语音对话、录音转写）
+- 个人账号体系（当前为共享演示账号）
+- 好友系统、社区互动（点赞/评论/收藏）
+- 检查报告上传与药物管理
+- 成就体系埋点与激励机制
+- 实时语音转写（WebSocket）
+- 大陆网络加速与自定义域名
+- 模型评测集与快照锁定、数据导出与隐私合规
 
-- `SUPABASE_URL`、`SUPABASE_ANON_KEY`、`SUPABASE_SERVICE_ROLE_KEY`：Supabase 服务端配置。
-- `ALLOWED_ORIGINS`：逗号分隔的 Vercel 正式域名和受控 Preview 域名；生产不得设为 `*`。
-- `AI_MOCK_MODE`：只允许本地/演示环境设为 `true`。
-- `MODEL_BASE_URL`、`MODEL_API_KEY`、`MODEL_CHAT_MODEL`：OpenAI-compatible 文本模型配置，后续可填百炼兼容模式地址；聊天建议使用 Qwen Plus。
-- `MODEL_FAST_MODEL`：结构化提取、月度摘要和「AI 帮我说」使用的低成本模型，建议 Qwen Flash；留空时回退 `MODEL_CHAT_MODEL`。
-- `MODEL_EMBEDDING_MODEL`、`MODEL_EMBEDDING_DIMENSIONS`：可选向量模型；未配置时 RAG 自动使用 PostgreSQL 关键词相似度检索。
-- `DASHSCOPE_API_KEY`、`DASHSCOPE_WORKSPACE_ID`：百炼语音服务配置。
-- `ASR_MODEL`：默认 `fun-asr-realtime`；MVP Edge Function 使用单文件/单句请求。
-- `TTS_MODEL`、`TTS_VOICE`：默认 `cosyvoice-v3-flash`、`longanyang`。
+## 鸣谢 ❤️
 
-模型地址约定为以 `/v1` 结尾的兼容模式基础地址，代码会追加 `chat/completions` 和 `embeddings`。模型配置交付后只需设置 Supabase secrets，无需修改业务代码。
+感谢 **SheNicest 黑客松的主办方**搭建了这次相聚的舞台；感谢**一起熬夜改代码的队友们**；感谢**接受我们访谈的姐姐们**，你们真诚分享的每一段经历，是盛年所有功能的起点；感谢**每一位热情的朋友**和**贴心的工作人员**。
 
-## 知识库导入
+盛年献给每一位正在穿越灰烬的女性——愿你们被听见，被记录，被温柔以待。
 
-默认读取 `G:\tide\menopause-knowledge-base`。导入器解析 YAML frontmatter，按 Markdown 标题进行 800 字以内分块并保留约 100 字重叠；自动排除 README、`00-索引.md` 和 `07-原始资料/`。
+---
 
-```powershell
-Copy-Item .env.example .env.local
-npm.cmd run knowledge:dry-run
-npm.cmd run knowledge:import
-npm.cmd run knowledge:publish
-```
-
-`knowledge:import` 只写入 `draft`，不会被聊天检索。资料完成来源、时效、医疗准确性及商用版权审核后，才执行 `knowledge:publish`。当前库含第三方科普内容，发布前必须由项目方确认使用授权；导入脚本不等于版权许可。
-
-如果配置了 embedding API，导入时同时保存向量；未配置则保存正文分块，RAG 仍可通过 `pg_trgm` 工作。知识库导入使用 service role key，只能在可信服务端执行。
-
-## 部署到 Supabase
-
-```powershell
-npx.cmd supabase login
-npx.cmd supabase link --project-ref <project-ref>
-npx.cmd supabase db push
-npx.cmd supabase secrets set --env-file supabase/.env.production
-npx.cmd supabase functions deploy chat
-npx.cmd supabase functions deploy speech-asr
-npx.cmd supabase functions deploy speech-tts
-npx.cmd supabase functions deploy health-card-confirm
-npx.cmd supabase functions deploy report-preview
-npx.cmd supabase functions deploy recommendations
-npx.cmd supabase functions deploy monthly-summary
-npx.cmd supabase functions deploy ai-rephrase
-```
-
-部署后再以生产项目配置执行 `npm.cmd run knowledge:publish`。不要把 `.env.production`、service role key、百炼密钥提交仓库，也不要放进任何 `NEXT_PUBLIC_*` 变量。
-
-## 数据与安全边界
-
-- `profiles.user_type` 由注册元数据初始化，客户端只能编辑出生年份、既往病史、手术史，不能自行改角色。
-- 本人健康数据由 RLS 隔离；`supporter` 调用健康 RPC/报告/月度总结返回 `ROLE_NOT_ALLOWED`。
-- AI 聊天只生成 `chat_card_drafts`，不会直接写正式记录。用户勾选后，`confirm_health_card` 在同一数据库事务中保存记录、消费草案并保存幂等结果。
-- `chat_messages` 对客户端只读，防止伪造 assistant/tool 消息；写入只由鉴权后的 Edge Function 完成。
-- ASR 限 60 秒和 8 MiB；TTS 限 300 字，音频只在请求期间转发，不持久化。
-- 报告和 AI 输出均为健康信息整理，不构成医学诊断。聊天包含危急症状硬规则兜底，不能被模型覆盖。
-
-## 校验
-
-```powershell
-npm.cmd test
-npm.cmd run test:edge
-npm.cmd run check
-npm.cmd run knowledge:dry-run
-```
-
-`npm test` 会解析完整 PostgreSQL/PLpgSQL 迁移并测试知识库解析/分块；`npm run test:edge` 测试报告日期、安全兜底与页面导航；`npm run check` 对全部 Edge Functions 做 Deno 严格类型检查。完整数据库/RLS 集成验证需在安装 Docker Desktop 后执行 `npm.cmd run supabase:start` 和 `npm.cmd run supabase:reset`。
+*SheNicest Hackathon MVP · 2026*
