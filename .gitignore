@@ -28,6 +28,8 @@ tsconfig.tsbuildinfo
 # tooling & local configs
 .claude/
 .openai/
+!frontend/.openai/
+!frontend/.openai/hosting.json
 
 # archives & temp
 *.zip

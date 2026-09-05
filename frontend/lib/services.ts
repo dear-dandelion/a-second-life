@@ -1,6 +1,6 @@
 'use client';
 
-import type { ChatSseEvent, FrontendServices, HealthDraftItem, MonthlySummary, Profile, Recommendation } from './contracts';
+import type { ChatSseEvent, FrontendServices, HealthDraftItem, HealthRecord, MonthlyHealthStats, MonthlySummary, NavigationTarget, Profile, Recommendation } from './contracts';
 import { currentAccessToken } from './auth';
 import { getSupabase } from './supabase';
 import { createClientId } from './id';
@@ -35,6 +35,38 @@ const summaries: MonthlySummary[] = [
 ];
 
 let profile: Profile = { id: 'demo-user', userType: 'self_user', birthYear: 1978, medicalHistory: '高血压史', surgeryHistory: '无' };
+const today = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Shanghai' }) as HealthRecord['date'];
+const mockRecordStore = new Map<string, HealthRecord>();
+const mockDraftDates = new Map<string,string>();
+const asText = (value: unknown, fallback = '') => typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' ? String(value) : fallback;
+function mockDate(text:string){const current=today();const iso=text.match(/\b(20\d{2})-(\d{1,2})-(\d{1,2})\b/);if(iso)return`${iso[1]}-${iso[2].padStart(2,'0')}-${iso[3].padStart(2,'0')}`;const md=text.match(/(\d{1,2})月(\d{1,2})日/);if(md)return`${current.slice(0,4)}-${md[1].padStart(2,'0')}-${md[2].padStart(2,'0')}`;if(text.includes('昨天')){const date=new Date(`${current}T00:00:00Z`);date.setUTCDate(date.getUTCDate()-1);return date.toISOString().slice(0,10)}return current}
+
+function mockHealthItems(text: string): HealthDraftItem[] {
+  const items: HealthDraftItem[] = [];
+  const push = (category: string, data: Record<string, unknown> | string) => items.push({
+    clientItemId: createClientId(), category, operation: 'create', data, quote: text.slice(0, 100), confidence: .82,
+  });
+  const symptom = [['潮热','潮热'],['头痛','头痛'],['心悸','心慌'],['盗汗','夜里出汗'],['头晕','头晕']].find(([,word])=>text.includes(word));
+  if(symptom) push('symptom',{symptom:symptom[0],occurred:!/(没有|没再|不再)/.test(text),severity:/严重|受不了/.test(text)?'重':/有点|轻微/.test(text)?'轻':undefined,frequencyCount:Number(text.match(/(\d+)\s*次/)?.[1])||undefined});
+  if(/睡不着|睡不好|失眠|夜醒|醒了|睡眠/.test(text)) push('sleep',{quality:/睡不着|睡不好|失眠/.test(text)?'差':'一般',nightWakes:Number(text.match(/(?:醒|夜醒)(?:了)?\s*(\d+)\s*次/)?.[1])||undefined,detail:text.slice(0,80)});
+  const mood=['焦虑','烦躁','低落','开心','平静','轻松'].find(word=>text.includes(word));
+  if(mood) push('mood',{type:['开心','平静','轻松'].includes(mood)?'正面':'负面',description:mood});
+  if(/想去医院|想找医生|就医/.test(text)) push('medicalNeed',text.slice(0,200));
+  return items;
+}
+
+function mockNavigation(text: string): {target:NavigationTarget;params?:Record<string,string>} | null {
+  if(/报告|导出给医生/.test(text)) return {target:'reportExport'};
+  if(/月度总结|这个月总结/.test(text)) return {target:'monthlySummary'};
+  if(/月历|曲线|这个月的(睡眠|潮热|心情|运动)|月度记录/.test(text)) return {target:'monthlyRecords'};
+  if(/健康卡片|今日记录|修改.*(?:昨天|\d{1,2}月\d{1,2}日).*(?:记录|卡片)/.test(text)) return {target:'healthCard',params:{date:mockDate(text)}};
+  if(/个人资料|我的资料|填写.*(?:出生年份|既往病史|手术史)/.test(text)){
+    const params:Record<string,string>={};const birth=text.match(/出生年份[^\d]*((?:19|20)\d{2})/);const history=text.match(/既往病史[^：:，。]*[：:]?\s*([^，。]+)/);const surgery=text.match(/手术史[^：:，。]*[：:]?\s*([^，。]+)/);
+    if(birth)params.birthYear=birth[1];if(history)params.medicalHistory=history[1];if(surgery)params.surgeryHistory=surgery[1];return{target:'profile',params};
+  }
+  if(/行动|运动建议/.test(text)) return {target:'exerciseToday'};
+  return null;
+}
 
 const mockServices: FrontendServices = {
   recommendations: { async getToday() { await wait(180); return recommendations; } },
@@ -42,7 +74,10 @@ const mockServices: FrontendServices = {
     async *stream(text, clientMessageId, _conversationId, signal): AsyncIterable<ChatSseEvent> {
       yield { type: 'message_started', data: { conversationId: 'demo-conversation', clientMessageId } };
       const normalized = text.trim();
-      const healthSignal = /睡|潮热|心情|头痛|不舒服|焦虑/.test(normalized);
+      const healthItems = mockHealthItems(normalized);
+      const navigation = mockNavigation(normalized);
+      if(navigation) yield { type:'navigation', data:navigation };
+      const healthSignal = healthItems.length > 0;
       const answer = healthSignal
         ? '听起来这几天的睡眠让你有些疲惫。我们可以先把发生的情况记清楚，不急着给自己下结论。你愿意说说昨晚大约几点睡、醒了几次吗？'
         : '谢谢你愿意把这些告诉我。你的感受值得被认真对待，我们可以从最困扰你的那一点慢慢说起。';
@@ -51,19 +86,41 @@ const mockServices: FrontendServices = {
         await wait(220);
         yield { type: 'text_delta', data: { delta: sentence } };
       }
-      if (healthSignal) yield { type: 'health_card_preview', data: { draftId: createClientId(), recordDate: '2026-08-29' } };
+      if (healthSignal) {const draftId=createClientId();const recordDate=mockDate(text);mockDraftDates.set(draftId,recordDate);await mockServices.healthCard.confirm(draftId,healthItems,createClientId());yield { type: 'health_card_updated', data: { recordDate:recordDate as HealthRecord['date'], items:healthItems, savedItemCount:healthItems.length } };}
       yield { type: 'message_completed', data: { messageId: createClientId(), speakableText: answer } };
     },
   },
   healthCard: {
-    async confirm(_draftId, selectedItems, _idempotencyKey) { await wait(260); return { savedItemCount: selectedItems.length }; },
+    async confirm(draftId, selectedItems, _idempotencyKey) {
+      await wait(120);
+      const date=mockDraftDates.get(draftId)??today();
+      const existing:HealthRecord=mockRecordStore.get(date)??{date:date as HealthRecord['date'],symptoms:[],medications:[],lifeEvents:[]};
+      for(const item of selectedItems){
+        if(item.category==='symptom'&&item.data&&typeof item.data==='object')existing.symptoms.push(item.data as HealthRecord['symptoms'][number]);
+        else if(item.category==='sleep'&&item.data&&typeof item.data==='object')existing.sleep=item.data as HealthRecord['sleep'];
+        else if(item.category==='mood'&&item.data&&typeof item.data==='object')existing.mood=item.data as HealthRecord['mood'];
+        else if(item.category==='medicalNeed'&&typeof item.data==='string')existing.medicalNeeds=item.data;
+      }
+      mockRecordStore.set(date,structuredClone(existing));
+      return { savedItemCount: selectedItems.length };
+    },
+  },
+  healthRecords: {
+    async list(){return [...mockRecordStore.keys()].sort().reverse().map(date=>({date:date as HealthRecord['date'],updatedAt:new Date().toISOString()}));},
+    async get(date){return structuredClone(mockRecordStore.get(date)??null);},
+    async save(date,record){mockRecordStore.set(date,structuredClone({...record,date:date as HealthRecord['date']}));return{recordId:record.id??createClientId(),recordDate:date};},
+    async monthly(month){const [year,monthNumber]=month.split('-').map(Number);const total=new Date(year,monthNumber,0).getDate();const days=Array.from({length:total},(_,index)=>{const date=`${month}-${String(index+1).padStart(2,'0')}` as HealthRecord['date'];const record=mockRecordStore.get(date);const hotFlash=record?.symptoms.find(item=>item.symptom==='潮热');return{date,hasRecord:Boolean(record),sleep:record?.sleep??null,hotFlash:hotFlash??null,mood:record?.mood??null,exercise:record?.exercise??null}});return{month:month as MonthlyHealthStats['month'],days,digest:{text:`本月已记录 ${days.filter(day=>day.hasRecord).length} 天。`,highlights:[]}};},
+  },
+  speech: {
+    async transcribe(){await wait(250);return '昨晚睡得不太好，夜里醒了两次。';},
+    async synthesize(){return null;},
   },
   profile: {
     async get() { await wait(160); return profile; },
     async update(input) { await wait(260); profile = { ...profile, ...input }; return profile; },
   },
   rephrase: {
-    async rephrase(text) { await wait(450); return `我想认真和你说说最近的感受：${text.trim()}。我不是在责怪谁，只是希望自己的需要也能被听见。`; },
+    async rephrase(text,options) { await wait(450); const audience=options?.audience&&options.audience!=='不指定'?`和${options.audience}`:'认真';return `我想${audience}说说最近的感受：${text.trim()}。我不是在责怪谁，只是希望自己的需要也能被听见。`; },
   },
   summaries: {
     async list() { await wait(180); return summaries; },
@@ -84,9 +141,12 @@ async function authHeaders(): Promise<Record<string, string>> {
 }
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const headers = new Headers(init?.headers);
+  headers.set('Content-Type', 'application/json');
+  for (const [name,value] of Object.entries(await authHeaders())) headers.set(name,value);
   const response = await fetch(edgeUrl(path), {
     ...init,
-    headers: { 'Content-Type': 'application/json', ...(await authHeaders()), ...(init?.headers ?? {}) },
+    headers,
   });
   if (!response.ok) throw new Error(`REQUEST_FAILED_${response.status}`);
   return response.json() as Promise<T>;
@@ -95,26 +155,41 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
 function mapSseEvent(event: string, data: Record<string, unknown>): ChatSseEvent | null {
   switch (event) {
     case 'message_started':
-      return { type: 'message_started', data: { conversationId: String(data.conversationId ?? ''), clientMessageId: String(data.clientMessageId ?? '') } };
+      return { type: 'message_started', data: { conversationId: asText(data.conversationId), clientMessageId: asText(data.clientMessageId) } };
     case 'text_delta':
-      return { type: 'text_delta', data: { delta: String(data.delta ?? '') } };
+      return { type: 'text_delta', data: { delta: asText(data.delta) } };
     case 'tool_status':
-      return { type: 'tool_status', data: { name: String(data.name ?? ''), status: data.status === 'done' ? 'done' : 'running' } };
+      return { type: 'tool_status', data: { name: asText(data.name), status: data.status === 'done' ? 'done' : 'running' } };
+    case 'navigation':
+      return { type:'navigation', data:{target:asText(data.target,'healthCard') as NavigationTarget, params:data.params&&typeof data.params==='object'?data.params as Record<string,string>:undefined} };
+    case 'rag_sources':
+      return { type:'rag_sources', data:{sources:Array.isArray(data.sources)?data.sources as Array<{title:string;sourceUrl?:string;publisher?:string}>:[]} };
+    case 'health_card_updated':
+      return {
+        type:'health_card_updated',
+        data:{
+          recordDate:asText(data.recordDate) as `${number}-${number}-${number}`,
+          items:Array.isArray(data.items)?data.items as HealthDraftItem[]:[],
+          savedItemCount:Number(data.savedItemCount)||0,
+        },
+      };
+    case 'health_card_update_failed':
+      return {type:'health_card_update_failed',data:{recordDate:asText(data.recordDate) as `${number}-${number}-${number}`,message:asText(data.message,'健康卡片自动更新失败')}};
     case 'health_card_preview':
       return {
         type: 'health_card_preview',
         data: {
-          draftId: String(data.draftId ?? ''),
-          recordDate: String(data.recordDate ?? '') as `${number}-${number}-${number}`,
+          draftId: asText(data.draftId),
+          recordDate: asText(data.recordDate) as `${number}-${number}-${number}`,
           items: Array.isArray(data.items) ? (data.items as HealthDraftItem[]) : undefined,
         },
       };
     case 'message_completed':
-      return { type: 'message_completed', data: { messageId: String(data.messageId ?? ''), speakableText: String(data.speakableText ?? '') } };
+      return { type: 'message_completed', data: { messageId: asText(data.messageId), speakableText: asText(data.speakableText) } };
     case 'safety_alert':
-      return { type: 'safety_alert', data: { level: 'urgent', message: String(data.message ?? '') } };
+      return { type: 'safety_alert', data: { level: 'urgent', message: asText(data.message) } };
     case 'error':
-      return { type: 'error', data: { code: String(data.code ?? 'UNKNOWN'), message: String(data.message ?? ''), retryable: Boolean(data.retryable) } };
+      return { type: 'error', data: { code: asText(data.code,'UNKNOWN'), message: asText(data.message), retryable: Boolean(data.retryable) } };
     default:
       return null; // rag_sources / navigation 等事件暂不在 MVP 前端消费
   }
@@ -183,6 +258,42 @@ const realServices: FrontendServices = {
       return { savedItemCount: value?.savedItemCount ?? selectedItems.length };
     },
   },
+  healthRecords: {
+    async list(){
+      const client=getSupabase();
+      const {data,error}=await client.from('health_records').select('record_date,updated_at').order('record_date',{ascending:false}).limit(180);
+      if(error)throw new Error(`HEALTH_LIST_FAILED ${error.message}`);
+      return (data??[]).map(row=>({date:String(row.record_date) as HealthRecord['date'],updatedAt:String(row.updated_at)}));
+    },
+    async get(date){
+      const client=getSupabase();
+      const {data,error}=await client.rpc('get_health_record',{target_date:date});
+      if(error)throw new Error(`HEALTH_GET_FAILED ${error.message}`);
+      return (data?.record??null) as HealthRecord|null;
+    },
+    async save(date,record){
+      const client=getSupabase();
+      const {data,error}=await client.rpc('save_health_record',{target_date:date,payload:record});
+      if(error)throw new Error(`HEALTH_SAVE_FAILED ${error.message}`);
+      return {recordId:String(data.recordId??''),recordDate:String(data.recordDate??date)};
+    },
+    async monthly(month){
+      const client=getSupabase();const {data,error}=await client.rpc('get_monthly_stats',{target_month:month});
+      if(error)throw new Error(`MONTHLY_STATS_FAILED ${error.message}`);return data as MonthlyHealthStats;
+    },
+  },
+  speech: {
+    async transcribe(audio,durationMs,clientRequestId){
+      const form=new FormData();form.append('audio',audio,'recording.webm');form.append('durationMs',String(durationMs));form.append('clientRequestId',clientRequestId);
+      const response=await fetch(edgeUrl('speech-asr'),{method:'POST',headers:await authHeaders(),body:form});
+      if(!response.ok)throw new Error(`ASR_FAILED_${response.status}`);
+      const value=await response.json() as {text?:string};return String(value.text??'');
+    },
+    async synthesize(messageId,text){
+      const response=await fetch(edgeUrl('speech-tts'),{method:'POST',headers:{'Content-Type':'application/json',...(await authHeaders())},body:JSON.stringify({messageId,text})});
+      if(!response.ok)throw new Error(`TTS_FAILED_${response.status}`);return response.blob();
+    },
+  },
   profile: {
     async get() {
       const client = getSupabase();
@@ -208,7 +319,8 @@ const realServices: FrontendServices = {
       if (!userId) throw new Error('NOT_AUTHENTICATED');
       const { data, error } = await client
         .from('profiles')
-        .upsert({ id: userId, birth_year: input.birthYear, medical_history: input.medicalHistory, surgery_history: input.surgeryHistory }, { onConflict: 'id' })
+        .update({ birth_year: input.birthYear, medical_history: input.medicalHistory, surgery_history: input.surgeryHistory })
+        .eq('id', userId)
         .select('id,user_type,birth_year,medical_history,surgery_history')
         .single();
       if (error || !data) throw new Error(`PROFILE_UPDATE_FAILED ${error?.message ?? ''}`);
@@ -219,8 +331,8 @@ const realServices: FrontendServices = {
     },
   },
   rephrase: {
-    async rephrase(text) {
-      const value = await requestJson<{ text: string }>('ai-rephrase', { method: 'POST', body: JSON.stringify({ clientRequestId: createClientId(), text, style: 'warm' }) });
+    async rephrase(text,options) {
+      const value = await requestJson<{ text: string }>('ai-rephrase', { method: 'POST', body: JSON.stringify({ clientRequestId: createClientId(), text, style: 'warm', audience: options?.audience }) });
       return value.text;
     },
   },
@@ -238,4 +350,4 @@ const realServices: FrontendServices = {
   },
 };
 
-export const services = process.env.NEXT_PUBLIC_USE_MOCKS === 'false' ? realServices : mockServices;
+export const services = process.env.NEXT_PUBLIC_USE_MOCKS === 'true' ? mockServices : realServices;

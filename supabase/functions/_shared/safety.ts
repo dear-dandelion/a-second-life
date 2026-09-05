@@ -1,3 +1,5 @@
+import { resolveRecordDate } from "./date.ts";
+
 export interface SafetyResult {
   urgent: boolean;
   message?: string;
@@ -34,8 +36,17 @@ export function detectNavigation(text: string): { target: string; params?: Recor
   if (/月历|曲线|这个月的(睡眠|潮热|心情|运动)|月度记录/.test(text)) return { target: "monthlyRecords" };
   if (/今日行动|今天动一动|今天.*建议/.test(text)) return { target: "exerciseToday" };
   if (/全部.*(行动|建议)|六个分类/.test(text)) return { target: "exerciseCategories" };
-  if (/填写.*记录|健康卡片|今日记录/.test(text)) return { target: "healthCard" };
-  if (/个人资料|我的资料/.test(text)) return { target: "profile" };
+  if (/填写.*记录|健康卡片|今日记录|修改.*(?:昨天|前天|\d{1,2}月\d{1,2}日).*(?:记录|卡片)/.test(text)) return { target: "healthCard", params: { date: resolveRecordDate(text) } };
+  if (/个人资料|我的资料|填写.*(?:出生年份|既往病史|手术史)|修改.*(?:出生年份|既往病史|手术史)/.test(text)) {
+    const params: Record<string, string> = {};
+    const birth = text.match(/出生年份(?:是|为|改成|改为|填写|：|:)?\s*((?:19|20)\d{2})/);
+    const history = text.match(/既往病史(?:是|为|有|改成|改为|填写|：|:)?\s*([^，。；;\n]{1,100})/);
+    const surgery = text.match(/手术史(?:是|为|有|改成|改为|填写|：|:)?\s*([^，。；;\n]{1,100})/);
+    if (birth) params.birthYear = birth[1];
+    if (history) params.medicalHistory = history[1].trim();
+    if (surgery) params.surgeryHistory = surgery[1].trim();
+    return { target: "profile", ...(Object.keys(params).length ? { params } : {}) };
+  }
   return null;
 }
 

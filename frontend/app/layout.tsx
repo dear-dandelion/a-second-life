@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import './fidelity.css';
 
@@ -17,6 +17,13 @@ export const metadata: Metadata = {
     description: '更年期AI陪伴助手，帮您穿越灰烬，涅槃重生。',
     images: ['/og.png'],
   },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#fcfbf8',
 };
 
 export default function RootLayout({

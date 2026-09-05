@@ -112,3 +112,240 @@
 .page-header .back{width:44px;height:44px;background:#F4F0E8;justify-self:start}
 .searchbar{background:#F4F0E8}
 .post{background:#F4F0E8}
+
+/* App viewport system: preserve the 390×844 prototype on desktop and use the
+   device's real viewport, safe areas and orientation on mobile. */
+html,body{width:100%;min-height:100%;overflow-x:hidden;-webkit-text-size-adjust:100%}
+body{min-height:100vh;min-height:100dvh;overscroll-behavior-y:none}
+.prototype-stage{min-height:100vh;min-height:100dvh}
+.phone-shell{width:min(390px,calc(100vw - 48px));height:min(844px,calc(100dvh - 48px));min-width:0;min-height:0}
+.screen-scroll{min-width:0;min-height:0;overscroll-behavior-y:contain}
+button,input,textarea,select{min-width:0}
+img,canvas{max-width:100%;height:auto}
+.chat-view .chat-composer{position:static;left:auto;right:auto;bottom:auto}
+.screen-scroll.chat-screen:has(.chat-composer){padding-bottom:0}
+.page-header:has(.view-toggle){grid-template-columns:44px minmax(0,1fr) 126px}
+.header-action{min-width:0;gap:4px}
+[data-slot="dialog-content"]{max-height:calc(100dvh - 32px);overflow-y:auto}
+[data-slot="toast-viewport"]{bottom:max(16px,env(safe-area-inset-bottom))}
+
+@media (max-width:767px), (max-width:1024px) and (pointer:coarse){
+  .prototype-stage{display:block;padding:0;background:var(--paper)}
+  .phone-shell{width:100vw;max-width:none;height:100vh;height:100dvh;border:0;border-radius:0;box-shadow:none}
+  .statusbar{height:calc(44px + env(safe-area-inset-top));flex-basis:calc(44px + env(safe-area-inset-top));padding:env(safe-area-inset-top) max(20px,env(safe-area-inset-right)) 0 max(20px,env(safe-area-inset-left))}
+  .screen-scroll{padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));padding-bottom:calc(94px + env(safe-area-inset-bottom))}
+  .screen-scroll.chat-screen{padding:0 max(12px,env(safe-area-inset-right)) 0 max(12px,env(safe-area-inset-left))}
+  .tabbar{left:max(8px,env(safe-area-inset-left));right:max(8px,env(safe-area-inset-right));bottom:max(6px,env(safe-area-inset-bottom));height:72px;border-radius:26px}
+  .chat-view .chat-composer{padding-bottom:max(12px,env(safe-area-inset-bottom))}
+  .record-actions,.report-actions,.dual-actions{padding-bottom:max(10px,env(safe-area-inset-bottom))}
+  .fab{right:max(18px,env(safe-area-inset-right));bottom:calc(88px + env(safe-area-inset-bottom))}
+  .screen-scroll:has(.fab){padding-bottom:calc(150px + env(safe-area-inset-bottom))}
+  .health-update-popover{width:min(244px,calc(100vw - 32px))}
+  [data-slot="dialog-content"]{width:calc(100vw - max(24px,calc(env(safe-area-inset-left) + env(safe-area-inset-right))));max-width:none;max-height:calc(100dvh - max(24px,calc(env(safe-area-inset-top) + env(safe-area-inset-bottom))))}
+  [data-slot="toast-viewport"]{left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));width:auto;max-width:none}
+}
+
+@media(max-width:360px){
+  .screen-scroll{padding-left:max(10px,env(safe-area-inset-left));padding-right:max(10px,env(safe-area-inset-right))}
+  .home-heading h1,.top-title h1{font-size:22px}.page-header h1{font-size:18px}.page-header{grid-template-columns:42px minmax(0,1fr) 42px;gap:4px}.page-header:has(.view-toggle){grid-template-columns:42px minmax(0,1fr) 118px}.page-header .back,.icon-button{width:40px;height:40px}.view-toggle{min-width:74px;padding:0 7px}
+  .hero-card{min-height:195px;padding:23px 18px}.motion-card{min-height:218px;padding-inline:13px}.motion-copy{margin-left:98px}.expression-card{height:260px;padding-inline:19px}.expression-modes{left:19px}.expression-card>.dark-pill{left:19px}
+  .metric-grid button{height:106px}.metric-grid strong{font-size:15px}.post-actions{gap:15px}.notice-grid>button{grid-template-columns:42px minmax(0,1fr) 23px 16px}
+  .draft-fields{grid-template-columns:1fr}.record-array-row{grid-template-columns:minmax(0,1fr) 84px 28px}.record-datebar{grid-template-columns:18px minmax(0,1fr) 86px}.record-tabs button{flex-basis:66px}
+  .segmented button{font-size:10px}.month-summary{padding-inline:10px}.month-summary>div{gap:3px}.month-summary span{padding-inline:2px}.month-links{gap:7px}.month-links button{font-size:12px}.insight-grid{gap:6px}.petal-chart{transform:scale(.92);transform-origin:center top;margin-bottom:-20px}
+  .report-section>div{grid-template-columns:minmax(0,1fr) 1.15fr 13px}.report-actions{grid-template-columns:1fr 1.25fr 42px;gap:5px}.report-actions button{padding-inline:6px;font-size:11px}.share-options{gap:7px}.share-options button{font-size:11px}.badge-grid{gap:7px}
+}
+
+/* Health records use their own app viewport: header and save action stay in
+   place while the card content scrolls inside the remaining phone height. */
+.screen-scroll.health-screen{display:flex;flex-direction:column;overflow:hidden;padding:0 12px}.health-screen>.page-header{position:relative;top:auto;flex:0 0 auto}.health-screen>.record-editor{flex:1;min-height:0;overflow-y:auto;padding:0 2px 4px;scrollbar-width:none;overscroll-behavior-y:contain}.health-screen>.record-editor::-webkit-scrollbar{display:none}.health-screen>.record-loading{flex:1;min-height:0}.health-screen .record-sticky-tools{top:0}.record-sticky-tools{padding-top:1px;padding-bottom:7px}.record-datebar{grid-template-columns:19px minmax(0,1fr) 91px;padding-bottom:7px}.record-datebar input,.record-datebar select{height:36px}.record-tabs{gap:6px}.record-tabs button{flex-basis:68px;height:62px;border-radius:15px}.record-tabs svg{width:19px;height:19px}.record-sync-strip{min-height:58px;border:1px solid rgba(100,104,91,.1);border-radius:16px;padding:10px 12px;display:grid;grid-template-columns:34px minmax(0,1fr);align-items:center;gap:9px;background:linear-gradient(135deg,#f1f4ec,#faf5ee)}.record-sync-strip>svg{width:19px;height:19px;justify-self:center;color:#829075}.record-sync-strip span{min-width:0}.record-sync-strip b,.record-sync-strip small{display:block}.record-sync-strip b{font-size:13px}.record-sync-strip small{margin-top:3px;color:#7a7c76;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.record-section{padding:11px;border-radius:17px}.record-section>header{min-height:30px;margin-bottom:7px}.record-card{padding:10px;gap:8px}.record-field input,.record-field select{height:34px}.record-field textarea{min-height:58px}.record-actions{margin-top:0;padding-top:14px;padding-bottom:7px}.record-actions button{height:44px}
+
+@media (max-width:767px), (max-width:1024px) and (pointer:coarse){.screen-scroll.health-screen{padding:0 max(12px,env(safe-area-inset-right)) 0 max(12px,env(safe-area-inset-left))}.health-screen>.record-editor{padding-bottom:max(4px,env(safe-area-inset-bottom))}}
+@media(max-width:330px){.record-grid{grid-template-columns:1fr}.record-datebar{grid-template-columns:18px minmax(0,1fr) 82px}.record-tabs button{flex-basis:63px}.record-array-row{grid-template-columns:1fr 78px 26px}}
+
+@media(orientation:landscape) and (max-height:600px) and (pointer:coarse){
+  .statusbar{height:calc(34px + env(safe-area-inset-top));flex-basis:calc(34px + env(safe-area-inset-top));font-size:12px}
+  .page-header{min-height:62px;padding-bottom:8px}.record-sticky-tools{top:62px}.hero-card{min-height:180px}.motion-card,.action-hero{min-height:185px}.expression-card{height:225px}
+}
+
+/* Strict inline-size containment for the health card. Grid children such as
+   native date inputs and selects must never contribute their intrinsic width
+   to the phone shell. Only the category rail is allowed to scroll sideways. */
+.screen-scroll.health-screen{
+  inline-size:100%;
+  max-inline-size:100%;
+  min-inline-size:0;
+  overflow-x:hidden;
+}
+.health-screen>.page-header,
+.health-screen>.record-editor,
+.health-screen>.record-loading,
+.health-screen .record-editor>*{
+  inline-size:100%;
+  max-inline-size:100%;
+  min-inline-size:0;
+}
+.health-screen>.record-editor{
+  overflow-x:hidden;
+  contain:inline-size;
+}
+.health-screen .record-sticky-tools,
+.health-screen .record-datebar,
+.health-screen .record-tabs,
+.health-screen .record-sync-strip,
+.health-screen .record-section,
+.health-screen .record-card,
+.health-screen .record-actions,
+.health-screen .record-field{
+  max-inline-size:100%;
+  min-inline-size:0;
+}
+.health-screen .record-tabs{inline-size:100%;overscroll-behavior-x:contain}
+.health-screen .record-datebar{grid-template-columns:19px minmax(0,1fr) minmax(76px,91px)}
+.health-screen .record-datebar label,
+.health-screen .record-datebar input,
+.health-screen .record-datebar select,
+.health-screen .record-field>*{
+  inline-size:100%;
+  max-inline-size:100%;
+  min-inline-size:0;
+}
+.health-screen .record-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.health-screen .record-array-row{grid-template-columns:minmax(0,1fr) minmax(72px,92px) 28px}
+.health-screen .record-actions{grid-template-columns:minmax(0,1fr) minmax(0,1.5fr)}
+.health-screen .record-section>header{min-inline-size:0;gap:6px}
+.health-screen .record-section>header h3{min-inline-size:0;overflow-wrap:anywhere}
+.health-screen .record-section>header>span{flex:0 0 auto}
+
+@media(max-width:380px){
+  .health-screen .record-grid{grid-template-columns:minmax(0,1fr)}
+  .health-screen .record-array-row{grid-template-columns:minmax(0,1fr) 78px 28px}
+  .health-screen .record-datebar{grid-template-columns:18px minmax(0,1fr) 82px;gap:6px}
+}
+
+/* Every category shares one fixed header baseline. The category-specific
+   section scrolls below the same "今日健康卡片" strip. */
+.health-screen>.record-editor{
+  display:flex;
+  flex-direction:column;
+  gap:11px;
+  overflow:hidden;
+}
+.health-screen .record-sticky-tools{
+  position:relative;
+  top:auto;
+  flex:0 0 auto;
+}
+.health-screen .record-sync-strip{flex:0 0 58px}
+.health-screen .record-tab-panel{
+  inline-size:100%;
+  max-inline-size:100%;
+  min-inline-size:0;
+  min-block-size:0;
+  flex:1 1 auto;
+  display:grid;
+  align-content:start;
+  gap:11px;
+  overflow-x:hidden;
+  overflow-y:auto;
+  overscroll-behavior-y:contain;
+  scrollbar-width:none;
+}
+.health-screen .record-tab-panel::-webkit-scrollbar{display:none}
+.health-screen .record-tab-panel>.record-section,
+.health-screen>.record-editor>.record-actions{
+  inline-size:100%;
+  max-inline-size:100%;
+  min-inline-size:0;
+}
+.health-screen>.record-editor>.record-actions{
+  position:relative;
+  bottom:auto;
+  z-index:9;
+  flex:0 0 auto;
+  margin:0;
+  padding:8px 0 max(7px,env(safe-area-inset-bottom));
+  border-top:1px solid rgba(74,69,61,.08);
+  background:#fcfbf8;
+}
+
+/* AI expression helper: a single, understandable task flow for mobile. */
+.expression-card{
+  min-height:270px;
+  height:auto;
+  padding:23px 22px 20px;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:flex-start;
+  gap:14px;
+  overflow:hidden;
+  background-image:linear-gradient(90deg,rgba(244,224,225,.97) 0%,rgba(244,224,225,.86) 57%,rgba(244,224,225,.18) 100%),url('/card-ai-expression-bg-user.png');
+  background-size:cover;
+  background-position:center;
+}
+.expression-card-copy{max-width:75%}
+.expression-card-copy>small{display:block;margin-bottom:5px;color:#8d6668;font-size:11px;font-weight:600;letter-spacing:.08em}
+.expression-card-copy h2{margin:0 0 7px;font-size:24px}
+.expression-card-copy p{margin:0;color:#52504d;font-size:13px;line-height:1.65}
+.expression-benefits{display:flex;flex-wrap:wrap;gap:7px;margin:0;padding:0;list-style:none}
+.expression-benefits li{padding:6px 10px;border:1px solid rgba(132,101,102,.1);border-radius:999px;background:rgba(255,255,255,.58);color:#6d6260;font-size:10px}
+.expression-card>.dark-pill{position:static;margin-top:auto;min-width:132px;height:44px;border:0;justify-content:space-between;cursor:pointer}
+
+.screen-scroll.expression-screen{display:flex;flex-direction:column;overflow:hidden;padding:0 12px}
+.expression-workspace{height:100%;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.expression-workspace>.page-header{position:relative;top:auto;flex:0 0 auto}
+.expression-progress{flex:0 0 auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin:0 2px 11px;padding:7px;border-radius:15px;background:#f4f0e9;color:#8a8882}
+.expression-progress span{min-width:0;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;font-size:10px}
+.expression-progress i{width:18px;height:18px;border-radius:50%;background:#e5e0d8;display:grid;place-items:center;font-style:normal;font-size:9px}
+.expression-progress span.active{color:#55604e;font-weight:600}.expression-progress span.active i{background:#aeb99f;color:#fff}
+.expression-scroll{flex:1;min-height:0;overflow-x:hidden;overflow-y:auto;padding:0 2px max(14px,env(safe-area-inset-bottom));scrollbar-width:none;overscroll-behavior-y:contain}
+.expression-scroll::-webkit-scrollbar{display:none}
+.expression-compose,.expression-result,.expression-empty{width:100%;min-width:0;border:1px solid rgba(84,80,73,.1);border-radius:20px}
+.expression-compose{padding:15px;background:#faf8f4}
+.expression-compose fieldset{min-width:0;margin:0 0 13px;padding:0;border:0}
+.expression-compose legend,.expression-input-label>span{font-size:14px;font-weight:600}
+.audience-options{display:flex;gap:7px;margin-top:8px;overflow-x:auto;scrollbar-width:none}
+.audience-options::-webkit-scrollbar{display:none}
+.audience-options button{flex:0 0 auto;min-width:58px;height:40px;padding:0 12px;border:1px solid rgba(91,88,80,.11);border-radius:999px;background:#fff;color:#6f6d68;font-size:12px}
+.audience-options button.active{border-color:#9daa90;background:#a8b398;color:#fff;box-shadow:0 4px 10px rgba(85,99,72,.12)}
+.expression-examples{margin-bottom:13px}.expression-examples>b{display:block;margin-bottom:7px;color:#77756f;font-size:11px;font-weight:500}.expression-examples>div{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none}.expression-examples>div::-webkit-scrollbar{display:none}.expression-examples button{flex:0 0 auto;height:38px;padding:0 11px;border:0;border-radius:12px;background:#efeae2;color:#66635e;font-size:11px}
+.expression-input-label{display:flex;align-items:baseline;justify-content:space-between;gap:8px}.expression-input-label small{color:#95918a;font-size:10px;white-space:nowrap}
+.expression-compose .textarea-wrap{width:100%;min-width:0;margin-top:8px}.expression-compose .large-textarea{display:block;field-sizing:fixed;width:100%!important;max-width:none;height:128px!important;min-height:128px;margin:0;padding:13px 14px 28px!important;border:1px solid rgba(87,83,75,.12);border-radius:15px!important;background:#fff;box-shadow:none;font-size:14px!important;line-height:1.7}.expression-compose .large-textarea:focus{border-color:#a8b49a;outline:2px solid rgba(168,180,154,.13)}
+.expression-input-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:9px}.expression-input-actions p{min-width:0;margin:0;display:flex;align-items:center;gap:5px;color:#8a8882;font-size:9px;line-height:1.4}.expression-input-actions p svg{flex:0 0 auto;width:13px}.expression-input-actions>button{flex:0 0 auto;height:40px;padding:0 11px;border:0;border-radius:999px;background:#ece8e1;display:flex;align-items:center;gap:5px;font-size:11px}.expression-input-actions>button svg{width:16px}.expression-input-actions>button.recording{background:#c97979;color:#fff;animation:recordPulse 1.2s ease-in-out infinite}
+.expression-organize{width:100%;height:48px!important;margin-top:13px;border-radius:999px!important;background:var(--action-primary)!important;color:#fff!important;font-size:14px!important}.expression-organize svg{width:17px}
+.expression-result{margin-top:12px;padding:15px;background:linear-gradient(145deg,#eef2e9,#faf8f3)}
+.expression-result header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}.expression-result header small{display:block;margin-bottom:3px;color:#75806d;font-size:10px}.expression-result header h3{margin:0;font-size:15px}.expression-result header>svg{width:18px;color:#77816f}.expression-result textarea{display:block;field-sizing:fixed;width:100%!important;max-width:none;min-height:150px;padding:13px;border:1px solid rgba(91,87,79,.1);border-radius:14px;background:rgba(255,255,255,.75);box-shadow:none;font-size:14px;line-height:1.75}.expression-result .regenerate{height:38px;margin:7px 0 4px;padding:0;border:0;background:transparent;color:#687261;display:flex;align-items:center;gap:5px;font-size:11px}.expression-result .regenerate svg{width:15px}.expression-share-actions{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.45fr);gap:8px}.expression-share-actions button{height:46px;border-radius:999px}.expression-share-actions button:last-child{background:var(--action-primary);color:#fff}.expression-share-actions svg{width:16px}
+.expression-empty{min-height:84px;margin-top:12px;padding:13px 15px;background:#f5f1eb;display:grid;grid-template-columns:32px minmax(0,1fr);align-items:center;gap:10px;color:#77746e}.expression-empty>svg{width:22px}.expression-empty b{font-size:12px}.expression-empty p{margin:4px 0 0;font-size:10px;line-height:1.5}
+
+@media(max-width:360px){
+  .expression-card{min-height:252px;padding-inline:18px}.expression-card-copy{max-width:82%}.expression-card-copy p{font-size:12px}
+  .screen-scroll.expression-screen{padding-inline:10px}.expression-progress span{font-size:9px}.expression-compose{padding:13px}.expression-input-label{display:block}.expression-input-label small{display:block;margin-top:3px}.expression-input-actions p{max-width:58%}
+}
+
+/* AI 帮我说：沿用入口卡片的暖米白、浅粉与深色配色。 */
+.screen-scroll.expression-screen{background:linear-gradient(180deg,#fcfaf7 0%,#fdf8f6 100%)}
+.expression-workspace{--expression-paper:#fcfaf7;--expression-blush:#f4e0e1;--expression-blush-soft:#faefed;--expression-blush-deep:#bd7e82;--expression-ink:#2d2b2b;--expression-muted:#806d6d;--expression-line:rgba(145,99,103,.14)}
+.expression-workspace>.page-header{background:transparent}.expression-workspace .page-header h1{color:var(--expression-ink)}.expression-workspace .page-header p{color:var(--expression-muted)}
+.expression-progress{background:var(--expression-blush-soft);color:#9a8383}.expression-progress i{background:#eddbd9;color:#8b6b6c}.expression-progress span.active{color:var(--expression-ink)}.expression-progress span.active i{background:var(--expression-ink);color:#fff}
+.expression-compose,.expression-result,.expression-empty{border-color:var(--expression-line)}.expression-compose{background:#fffaf7}.expression-compose legend,.expression-input-label>span{color:var(--expression-ink)}
+.audience-options button{border-color:rgba(154,111,114,.15);background:#fff;color:#806d6d}.audience-options button.active{border-color:var(--expression-ink);background:var(--expression-ink);color:#fff;box-shadow:0 4px 10px rgba(48,40,40,.12)}
+.expression-examples>b,.expression-input-label small{color:#967d7d}.expression-examples button{background:var(--expression-blush-soft);color:#765e5f}
+.expression-compose .large-textarea{border-color:rgba(154,111,114,.16);background:#fffdfb;color:var(--expression-ink)}.expression-compose .large-textarea:focus{border-color:var(--expression-blush-deep);outline-color:rgba(189,126,130,.15)}
+.expression-input-actions p{color:#967d7d}.expression-input-actions>button{background:#f4e5e3;color:#6f5758}.expression-input-actions>button.recording{background:var(--expression-blush-deep);color:#fff}
+.expression-organize{background:var(--expression-ink)!important}.expression-organize:hover:not(:disabled),.expression-organize:active:not(:disabled){background:#494443!important}
+.expression-result{background:linear-gradient(145deg,#f8e9e8,#fffaf7)}.expression-result header small{color:#9b6f72}.expression-result header h3,.expression-result header>svg{color:var(--expression-ink)}.expression-result textarea{border-color:rgba(154,111,114,.14);background:rgba(255,253,251,.88);color:var(--expression-ink)}.expression-result .regenerate{color:#8f6668}.expression-share-actions [data-variant="outline"]{background:#f3e6e4;color:#6f5758}.expression-share-actions button:last-child{background:var(--expression-ink);color:#fff}.expression-share-actions button:last-child:hover,.expression-share-actions button:last-child:active{background:#494443}
+.expression-empty{background:var(--expression-blush-soft);color:#806d6d}.expression-empty>svg{color:#b97d80}
+
+/* AI 帮我说：米白为主、浅粉分层，深色仅用于一次关键提交。 */
+.screen-scroll.expression-screen{background:#fffcf8}
+.expression-workspace{--expression-paper:#fffcf8;--expression-blush:#f7e7e5;--expression-blush-soft:#fff8f6;--expression-blush-deep:#ebcaca;--expression-rose:#c9878b;--expression-ink:#34302e;--expression-muted:#8a7472;--expression-line:#efdad8}
+.expression-progress{background:var(--expression-blush);color:#9b8583}.expression-progress i{background:#f0d8d6;color:#956f70}.expression-progress span.active{color:var(--expression-ink)}.expression-progress span.active i{background:var(--expression-rose);color:#fff}
+.expression-compose{background:var(--expression-blush-soft)}.expression-compose,.expression-result,.expression-empty{border-color:var(--expression-line)}
+.audience-options button{border-color:var(--expression-line);background:#fffdfb;color:#806b69}.audience-options button.active{border-color:var(--expression-blush-deep);background:var(--expression-blush-deep);color:var(--expression-ink);box-shadow:none}
+.expression-examples button{background:var(--expression-blush);color:#775f5d}.expression-examples>b,.expression-input-label small,.expression-input-actions p{color:var(--expression-muted)}
+.expression-compose .large-textarea{border-color:var(--expression-line);background:#fffdfb}.expression-compose .large-textarea:focus{border-color:var(--expression-rose);outline-color:rgba(201,135,139,.16)}
+.expression-input-actions>button{background:var(--expression-blush-deep);color:#6f5758}.expression-input-actions>button.recording{background:var(--expression-rose);color:#fff}
+.expression-organize{background:var(--expression-ink)!important}.expression-organize:hover:not(:disabled),.expression-organize:active:not(:disabled){background:#4a4442!important}
+.expression-result{background:linear-gradient(145deg,#f7e7e5,#fff8f6)}.expression-result header small,.expression-result .regenerate{color:#a36f72}.expression-result textarea{border-color:var(--expression-line);background:#fffdfb}.expression-share-actions [data-variant="outline"]{background:var(--expression-blush);color:#705957}.expression-share-actions [data-variant="outline"]:hover,.expression-share-actions [data-variant="outline"]:active{background:#efd9d7;color:#604a48}.expression-share-actions button:last-child,.expression-share-actions button:last-child:hover,.expression-share-actions button:last-child:active{background:var(--expression-rose);color:#fff}
+.expression-empty{background:var(--expression-blush);color:var(--expression-muted)}.expression-empty>svg{color:var(--expression-rose)}
+.expression-share-actions [data-slot="button"][data-variant="default"]{background:var(--expression-rose);color:#fff}.expression-share-actions [data-slot="button"][data-variant="default"]:hover:not(:disabled),.expression-share-actions [data-slot="button"][data-variant="default"]:active:not(:disabled){background:#b6757a;color:#fff}
