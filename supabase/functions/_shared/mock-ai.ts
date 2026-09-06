@@ -70,11 +70,18 @@ export function mockExtractHealth(text: string, currentRecord: HealthRecord | nu
       quote: quoteAround(text, bedtime?.[0] ?? "睡"), confidence: 0.78,
     });
   }
-  const moodKeyword = ["烦躁", "焦虑", "低落", "想哭", "孤独", "开心", "平静", "轻松"].find((value) => text.includes(value));
-  if (moodKeyword) {
+  const mood = [
+    ["舒展", ["舒展", "轻松", "开心", "自在"]],
+    ["平静", ["平静", "安稳", "还好"]],
+    ["低落", ["低落", "想哭", "难过", "孤独"]],
+    ["焦虑", ["焦虑", "担心", "不安"]],
+    ["烦躁", ["烦躁", "心烦", "烦闷"]],
+  ].find(([, words]) => (words as string[]).some((value) => text.includes(value))) as [string, string[]] | undefined;
+  if (mood) {
+    const moodKeyword = mood[1].find((value) => text.includes(value)) ?? mood[0];
     items.push({
       clientItemId: crypto.randomUUID(), category: "mood", operation: "create",
-      data: { type: ["开心", "平静", "轻松"].includes(moodKeyword) ? "正面" : "负面", description: moodKeyword },
+      data: { state: mood[0], description: moodKeyword },
       quote: quoteAround(text, moodKeyword), confidence: 0.85,
     });
   }

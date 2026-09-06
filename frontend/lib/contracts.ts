@@ -1,5 +1,7 @@
 export type ISODate = `${number}-${number}-${number}`;
 export type Severity = '轻' | '中' | '重';
+export type MoodState = '舒展' | '平静' | '低落' | '焦虑' | '烦躁' | '复杂';
+export type MoodIntensity = '轻微' | '明显' | '强烈';
 export type HealthCategory =
   | 'symptom' | 'mood' | 'sleep' | 'menstrual' | 'weight' | 'appetite'
   | 'exercise' | 'diet' | 'medication' | 'lifeEvent' | 'medicalNeed' | 'other';
@@ -51,7 +53,7 @@ export interface HealthRecord {
     frequency?: string; frequencyCount?: number; trend?: '加重' | '减轻' | '稳定';
     trigger?: string; quote?: string;
   }>;
-  mood?: { id?: string; type: '负面' | '正面'; description: string; trigger?: string };
+  mood?: { id?: string; state: MoodState; intensity?: MoodIntensity; description?: string; trigger?: string; source?: 'manual' | 'ai'; confidence?: number; quote?: string };
   sleep?: { id?: string; quality?: '好' | '一般' | '差'; bedtime?: string; wakeTime?: string; nightWakes?: number; detail?: string };
   menstrual?: { id?: string; event: '来了' | '没来' | '量多' | '量少' | '淋漓不尽' | '非经期出血' | '痛经' | '停经'; date?: string; daysSinceLast?: number; note?: string };
   weight?: { id?: string; direction: '增加' | '减少'; amount?: string; speed?: '突然' | '缓慢'; date?: string };

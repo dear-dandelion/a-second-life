@@ -49,8 +49,9 @@ function mockHealthItems(text: string): HealthDraftItem[] {
   const symptom = [['潮热','潮热'],['头痛','头痛'],['心悸','心慌'],['盗汗','夜里出汗'],['头晕','头晕']].find(([,word])=>text.includes(word));
   if(symptom) push('symptom',{symptom:symptom[0],occurred:!/(没有|没再|不再)/.test(text),severity:/严重|受不了/.test(text)?'重':/有点|轻微/.test(text)?'轻':undefined,frequencyCount:Number(text.match(/(\d+)\s*次/)?.[1])||undefined});
   if(/睡不着|睡不好|失眠|夜醒|醒了|睡眠/.test(text)) push('sleep',{quality:/睡不着|睡不好|失眠/.test(text)?'差':'一般',nightWakes:Number(text.match(/(?:醒|夜醒)(?:了)?\s*(\d+)\s*次/)?.[1])||undefined,detail:text.slice(0,80)});
-  const mood=['焦虑','烦躁','低落','开心','平静','轻松'].find(word=>text.includes(word));
-  if(mood) push('mood',{type:['开心','平静','轻松'].includes(mood)?'正面':'负面',description:mood});
+  const mood=[['舒展',['舒展','轻松','开心','自在']],['平静',['平静','安稳','还好']],['低落',['低落','想哭','难过','孤独']],['焦虑',['焦虑','担心','不安']],['烦躁',['烦躁','心烦','烦闷']]] as const;
+  const matchedMood=mood.find(([,words])=>words.some(word=>text.includes(word)));
+  if(matchedMood){const keyword=matchedMood[1].find(word=>text.includes(word))??matchedMood[0];push('mood',{state:matchedMood[0],description:keyword,source:'ai',confidence:.85});}
   if(/想去医院|想找医生|就医/.test(text)) push('medicalNeed',text.slice(0,200));
   return items;
 }

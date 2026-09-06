@@ -77,9 +77,12 @@ export function applyDraftItems(
         }
       } else if (data && typeof data === "object") {
         const current = record[key];
-        mutableRecord[key] = item.operation === "update" && current && typeof current === "object"
-          ? { ...current, ...data }
+        const nextData = item.category === "mood"
+          ? { ...data, source: "ai", confidence: item.confidence, quote: item.quote }
           : data;
+        mutableRecord[key] = item.operation === "update" && current && typeof current === "object"
+          ? { ...current, ...nextData }
+          : nextData;
       } else if (data !== undefined && data !== null) {
         console.warn("跳过非对象数据", item.clientItemId, item.category);
       }
@@ -132,7 +135,12 @@ function sanitizeRecord(record: HealthRecord): HealthRecord {
     if (sleep.nightWakes !== undefined && !Number.isInteger(sleep.nightWakes)) delete sleep.nightWakes;
   }
   const mood = record.mood as unknown as Record<string, unknown> | undefined;
-  if (mood && mood.type !== undefined && !["负面", "正面"].includes(String(mood.type))) delete mood.type;
+  if (mood) {
+    if (!['舒展', '平静', '低落', '焦虑', '烦躁', '复杂'].includes(String(mood.state))) delete mood.state;
+    if (mood.intensity !== undefined && !['轻微', '明显', '强烈'].includes(String(mood.intensity))) delete mood.intensity;
+    if (mood.source !== undefined && !['manual', 'ai'].includes(String(mood.source))) delete mood.source;
+    if (mood.confidence !== undefined && (typeof mood.confidence !== 'number' || mood.confidence < 0 || mood.confidence > 1)) delete mood.confidence;
+  }
   const menstrual = record.menstrual as unknown as Record<string, unknown> | undefined;
   if (menstrual) {
     const events = ["来了", "没来", "量多", "量少", "淋漓不尽", "非经期出血", "痛经", "停经"];

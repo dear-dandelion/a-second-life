@@ -32,7 +32,7 @@ Deno.serve(async (request) => {
     const [sleepResult, symptomsResult, moodResult] = await Promise.all([
       adminClient.from("sleep_records").select("quality,detail").eq("record_id", record.id).maybeSingle(),
       adminClient.from("symptom_records").select("symptom,severity,occurred").eq("record_id", record.id).eq("occurred", true),
-      adminClient.from("mood_records").select("type,description").eq("record_id", record.id).maybeSingle(),
+      adminClient.from("mood_records").select("state,description").eq("record_id", record.id).maybeSingle(),
     ]);
     const childError = [sleepResult, symptomsResult, moodResult].find((result) => result.error)?.error;
     if (childError) throw new ApiError("INTERNAL_ERROR", "无法生成今日建议", 500);
@@ -46,7 +46,7 @@ Deno.serve(async (request) => {
     if ((symptoms ?? []).some((item) => ["关节痛", "腰背痛", "疲劳"].includes(item.symptom))) {
       items.push({ id: "gentle-move", category: "走起来", title: "做温和活动", description: "如果身体允许，可分段散步或做轻柔伸展；不舒服就及时停下。" });
     }
-    if (mood?.type === "负面") {
+    if (mood && ["低落", "焦虑", "烦躁"].includes(mood.state)) {
       items.push({ id: "mood-pause", category: "心情好", title: "给情绪一个出口", description: "找一个信任的人聊几句，或写下此刻最困扰你的事情。" });
     }
     for (const fallback of defaults) if (items.length < 2 && !items.some((item) => item.id === fallback.id)) items.push(fallback);

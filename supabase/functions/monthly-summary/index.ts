@@ -37,13 +37,13 @@ Deno.serve(async (request) => {
     const days = (stats?.days ?? []) as Array<Record<string, unknown>>;
     const recordedDays = days.filter((day) => day.hasRecord).length;
     const exerciseDays = days.filter((day) => day.exercise).length;
-    const positiveMoodDays = days.filter((day) => (day.mood as Record<string, unknown> | null)?.type === "正面").length;
+    const settledMoodDays = days.filter((day) => ["舒展", "平静"].includes(String((day.mood as Record<string, unknown> | null)?.state ?? ""))).length;
     let overview = recordedDays
       ? `这个月一共记录了 ${recordedDays} 天。你正在用自己的节奏关注身体和心情，这些记录会帮助你更清楚地回顾变化。`
       : "这个月还没有留下健康记录。任何时候开始都不晚，可以先记下一件身体或心情上的小变化。";
     const goodThings = [
       ...(exerciseDays ? [`这个月有 ${exerciseDays} 天记录了运动或活动。`] : []),
-      ...(positiveMoodDays ? [`这个月有 ${positiveMoodDays} 天记录了正面心情。`] : []),
+      ...(settledMoodDays ? [`这个月有 ${settledMoodDays} 天记录了舒展或平静的感受。`] : []),
       ...(recordedDays ? [`你为自己留下了 ${recordedDays} 天真实记录。`] : ["你仍然可以从今天开始关心自己。"]),
     ].slice(0, 3);
     const dimensions = [
