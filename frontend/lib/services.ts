@@ -120,7 +120,7 @@ const mockServices: FrontendServices = {
     async update(input) { await wait(260); profile = { ...profile, ...input }; return profile; },
   },
   rephrase: {
-    async rephrase(text,options) { await wait(450); const audience=options?.audience&&options.audience!=='不指定'?`和${options.audience}`:'认真';return `我想${audience}说说最近的感受：${text.trim()}。我不是在责怪谁，只是希望自己的需要也能被听见。`; },
+    async rephrase(text,options) { await wait(450); const audience=options?.audience&&options.audience!=='不指定'?`和${options.audience}`:'认真';return `我想${audience}说说心里的感受：${text.trim()}。我希望你能理解我此刻的心情，也愿意听我把话说完。`; },
   },
   summaries: {
     async list() { await wait(180); return summaries; },
