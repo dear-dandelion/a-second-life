@@ -271,6 +271,21 @@ img,canvas{max-width:100%;height:auto}
   scroll-margin-top:8px;
 }
 .health-screen .record-dimension+.record-dimension{margin-top:1px}
+.health-screen .record-grid{grid-template-columns:minmax(0,1fr)}
+.health-screen .record-card{gap:0;padding:0;overflow:hidden}
+.health-screen .record-card>.record-field,.health-screen .record-card>.record-grid>.record-field{padding:10px 12px!important;border-bottom:1px solid rgba(91,87,79,.08)!important}
+.health-screen .record-card>.record-field:last-child{border-bottom:0!important}
+.health-screen .record-card>.record-grid{gap:0}
+.health-screen .record-card>.record-grid>.record-field:last-child{border-bottom:0!important}
+.health-screen .record-card .record-field>span{font-size:11px}
+.health-screen .record-card .record-field input,.health-screen .record-card .record-field select,.health-screen .record-card .record-field textarea{background:#fff;border-color:transparent;border-radius:8px}
+.health-screen .record-card .record-field input:focus,.health-screen .record-card .record-field select:focus,.health-screen .record-card .record-field textarea:focus{border-color:#a8b49a}
+.health-screen .mood-record-card>.mood-record-hint,.health-screen .mood-record-card>.mood-state-options,.health-screen .mood-record-card>.mood-more{padding:10px 12px}
+.health-screen .mood-record-card>.mood-more{border-top:1px solid rgba(91,87,79,.08)}
+.health-screen .mood-more .record-grid{margin-top:8px}
+.health-screen .record-array-row{grid-template-columns:minmax(0,1fr);align-items:stretch}
+.health-screen .record-array-row>button{position:absolute;right:6px;top:6px;z-index:1}
+.health-screen .record-array-row>span{display:none}
 .health-screen .record-tab-panel::-webkit-scrollbar{display:none}
 .health-screen .record-tab-panel>.record-dimension,
 .health-screen .record-tab-panel>.record-dimension>.record-section,
