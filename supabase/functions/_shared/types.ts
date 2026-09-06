@@ -19,8 +19,15 @@ export interface Profile {
   id: string;
   user_type: UserType;
   birth_year: number | null;
+  height_cm: number | null;
+  menopausal_status: string;
   medical_history: string;
   surgery_history: string;
+  allergy_history: string;
+  regular_medications: string;
+  pregnancy_history: string;
+  family_history: string;
+  screening_history: string;
 }
 
 export interface SymptomRecord {

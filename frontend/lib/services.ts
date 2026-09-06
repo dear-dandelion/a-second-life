@@ -34,7 +34,7 @@ const summaries: MonthlySummary[] = [
   },
 ];
 
-let profile: Profile = { id: 'demo-user', userType: 'self_user', birthYear: 1978, medicalHistory: '高血压史', surgeryHistory: '无' };
+let profile: Profile = { id: 'demo-user', userType: 'self_user', birthYear: 1978, heightCm: 165, menopausalStatus: '围绝经期', medicalHistory: '高血压史', surgeryHistory: '无', allergyHistory: '无', regularMedications: '', pregnancyHistory: '', familyHistory: '', screeningHistory: '' };
 const today = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Shanghai' }) as HealthRecord['date'];
 const mockRecordStore = new Map<string, HealthRecord>();
 const mockDraftDates = new Map<string,string>();
@@ -303,14 +303,14 @@ const realServices: FrontendServices = {
       if (!userId) throw new Error('NOT_AUTHENTICATED');
       const { data, error } = await client
         .from('profiles')
-        .select('id,user_type,birth_year,medical_history,surgery_history')
+        .select('id,user_type,birth_year,height_cm,menopausal_status,medical_history,surgery_history,allergy_history,regular_medications,pregnancy_history,family_history,screening_history')
         .eq('id', userId)
         .maybeSingle();
       if (error) throw new Error(`PROFILE_FAILED ${error.message}`);
-      if (!data) return { id: userId, userType: 'self_user', birthYear: null, medicalHistory: '', surgeryHistory: '' };
+      if (!data) return { id: userId, userType: 'self_user', birthYear: null, heightCm: null, menopausalStatus: '', medicalHistory: '', surgeryHistory: '', allergyHistory: '', regularMedications: '', pregnancyHistory: '', familyHistory: '', screeningHistory: '' };
       return {
         id: data.id, userType: (data.user_type ?? 'self_user') as 'self_user' | 'supporter',
-        birthYear: data.birth_year, medicalHistory: data.medical_history ?? '', surgeryHistory: data.surgery_history ?? '',
+        birthYear: data.birth_year, heightCm: data.height_cm, menopausalStatus: data.menopausal_status ?? '', medicalHistory: data.medical_history ?? '', surgeryHistory: data.surgery_history ?? '', allergyHistory: data.allergy_history ?? '', regularMedications: data.regular_medications ?? '', pregnancyHistory: data.pregnancy_history ?? '', familyHistory: data.family_history ?? '', screeningHistory: data.screening_history ?? '',
       };
     },
     async update(input) {
@@ -320,14 +320,14 @@ const realServices: FrontendServices = {
       if (!userId) throw new Error('NOT_AUTHENTICATED');
       const { data, error } = await client
         .from('profiles')
-        .update({ birth_year: input.birthYear, medical_history: input.medicalHistory, surgery_history: input.surgeryHistory })
+        .update({ birth_year: input.birthYear, height_cm: input.heightCm, menopausal_status: input.menopausalStatus, medical_history: input.medicalHistory, surgery_history: input.surgeryHistory, allergy_history: input.allergyHistory, regular_medications: input.regularMedications, pregnancy_history: input.pregnancyHistory, family_history: input.familyHistory, screening_history: input.screeningHistory })
         .eq('id', userId)
-        .select('id,user_type,birth_year,medical_history,surgery_history')
+        .select('id,user_type,birth_year,height_cm,menopausal_status,medical_history,surgery_history,allergy_history,regular_medications,pregnancy_history,family_history,screening_history')
         .single();
       if (error || !data) throw new Error(`PROFILE_UPDATE_FAILED ${error?.message ?? ''}`);
       return {
         id: data.id, userType: (data.user_type ?? 'self_user') as 'self_user' | 'supporter',
-        birthYear: data.birth_year, medicalHistory: data.medical_history ?? '', surgeryHistory: data.surgery_history ?? '',
+        birthYear: data.birth_year, heightCm: data.height_cm, menopausalStatus: data.menopausal_status ?? '', medicalHistory: data.medical_history ?? '', surgeryHistory: data.surgery_history ?? '', allergyHistory: data.allergy_history ?? '', regularMedications: data.regular_medications ?? '', pregnancyHistory: data.pregnancy_history ?? '', familyHistory: data.family_history ?? '', screeningHistory: data.screening_history ?? '',
       };
     },
   },

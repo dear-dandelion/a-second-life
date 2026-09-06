@@ -31,7 +31,7 @@ export async function authenticate(request: Request, options: { requireSelfUser?
 
   const { data: profileData, error: profileError } = await adminClient
     .from("profiles")
-    .select("id,user_type,birth_year,medical_history,surgery_history")
+    .select("id,user_type,birth_year,height_cm,menopausal_status,medical_history,surgery_history,allergy_history,regular_medications,pregnancy_history,family_history,screening_history")
     .eq("id", userData.user.id)
     .maybeSingle();
   if (profileError) throw new ApiError("INTERNAL_ERROR", "无法读取用户资料", 500);
@@ -42,7 +42,7 @@ export async function authenticate(request: Request, options: { requireSelfUser?
     const { data, error } = await adminClient
       .from("profiles")
       .upsert({ id: userData.user.id, user_type: requested }, { onConflict: "id" })
-      .select("id,user_type,birth_year,medical_history,surgery_history")
+      .select("id,user_type,birth_year,height_cm,menopausal_status,medical_history,surgery_history,allergy_history,regular_medications,pregnancy_history,family_history,screening_history")
       .single();
     if (error) throw new ApiError("INTERNAL_ERROR", "无法初始化用户资料", 500);
     profile = data as Profile;

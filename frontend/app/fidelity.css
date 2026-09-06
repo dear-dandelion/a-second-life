@@ -101,6 +101,13 @@
 .personal-form .personal-field>span{font-size:14px}
 .personal-form .personal-field>b{font-size:14px;font-weight:400;color:#555;text-align:right;padding-right:8px}
 .personal-form .personal-field>svg{width:15px}
+.personal-form.editable{margin-bottom:12px;background:rgba(255,255,255,.36)}
+.personal-form.editable h3 small{font-size:11px;font-weight:400;color:var(--muted)}
+.personal-form.editable label>span i{font-style:normal;font-size:10px;color:#b37777;margin-left:4px}
+.personal-form.editable label>select{width:100%;height:38px;border:0;background:transparent;color:#555;text-align:right;padding:0 8px;appearance:auto}
+.personal-form.editable label:has(textarea){height:auto;min-height:82px;padding:10px 0;align-items:start}
+.personal-form.editable label:has(textarea)>span{padding-top:7px}
+.personal-form.editable label>textarea{min-height:62px;max-height:104px;margin:0;border:0;background:transparent;box-shadow:none;resize:vertical;line-height:1.5}
 .personal-actions{margin-top:20px}.personal-actions .primary-wide{margin-top:10px}.badge-grid>div{height:110px}.achievement-preview{height:202px}
 
 /* Responsive artwork crops: keep the key illustration visible as card ratios change. */

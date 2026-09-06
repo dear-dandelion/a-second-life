@@ -21,8 +21,15 @@ export interface Profile {
   id: string;
   userType: 'self_user' | 'supporter';
   birthYear: number | null;
+  heightCm: number | null;
+  menopausalStatus: '' | '未绝经' | '围绝经期' | '绝经后' | '不确定';
   medicalHistory: string;
   surgeryHistory: string;
+  allergyHistory: string;
+  regularMedications: string;
+  pregnancyHistory: string;
+  familyHistory: string;
+  screeningHistory: string;
 }
 
 export interface MonthlySummary {

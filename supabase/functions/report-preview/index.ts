@@ -88,10 +88,14 @@ Deno.serve(async (request) => {
       const dateOrder = String(recordDateById.get(String(a.record_id)) ?? "").localeCompare(String(recordDateById.get(String(b.record_id)) ?? ""));
       return dateOrder || String(a.created_at).localeCompare(String(b.created_at));
     });
-    const medications = [...new Map(medicationMentions.map((item) => [String(item.name), item])).values()].map((item) => ({
+    const recordedMedications = [...new Map(medicationMentions.map((item) => [String(item.name), item])).values()].map((item) => ({
       name: item.name,
       status: item.action === "停用" ? "已停用" : "服用中",
     }));
+    const medications = [
+      ...(profile.regular_medications.trim() ? [{ name: profile.regular_medications.trim(), status: "长期/规律用药" }] : []),
+      ...recordedMedications,
+    ];
     const warnings: string[] = [];
     if ((records ?? []).length === 0) warnings.push("所选时间范围内没有已确认的健康记录，报告主要为空模板。");
     else if ((records ?? []).length < 7) warnings.push("记录天数较少，汇总可能无法代表整个时间范围。请在就诊前核对并补充。");
@@ -101,17 +105,17 @@ Deno.serve(async (request) => {
       range: { startDate, endDate },
       profile: {
         birthYear: profile.birth_year,
-        height: null,
-        menopausalStatus: null,
-        usesMedication: medicationMentions.length ? medications.some((item) => item.status === "服用中") : null,
+        height: profile.height_cm,
+        menopausalStatus: profile.menopausal_status || null,
+        usesMedication: medications.length ? medications.some((item) => item.status !== "已停用") : null,
         chiefComplaint: String(body.chiefComplaint ?? records?.find((item) => item.medical_needs)?.medical_needs ?? "").slice(0, 1000),
         medicalHistory: profile.medical_history,
         surgeryHistory: profile.surgery_history,
         medications,
-        allergies: [],
-        pregnancyHistory: null,
-        familyHistory: null,
-        screenings: null,
+        allergies: profile.allergy_history ? [profile.allergy_history] : [],
+        pregnancyHistory: profile.pregnancy_history || null,
+        familyHistory: profile.family_history || null,
+        screenings: profile.screening_history || null,
       },
       summary: {
         menstrual: menstrualText,
