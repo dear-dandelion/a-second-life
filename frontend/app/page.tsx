@@ -41,7 +41,7 @@ function homeMonthlyOverview(stats:MonthlyHealthStats|null){
   const qualities=sleeps.map(sleep=>asText(sleep.quality)).filter(Boolean);
   const quality=mostFrequent(qualities);
   const sleepValue=durations.length>=2?displayDuration(Math.round((durations.reduce((sum,value)=>sum+value,0)/durations.length)/5)*5):sleeps.length?`已记录 ${sleeps.length} 晚`:'暂无记录';
-  const sleepStatus=durations.length>=2?(quality.values.length!==1?'睡眠有波动':quality.values[0]==='好'?'大多良好':quality.values[0]==='一般'?'整体一般':'睡得不稳'):sleeps.length&&durations.length===0?'时长待补':sleeps.length?'睡眠已记':'今晚记睡眠';
+  const sleepStatus=durations.length>=2?(quality.values.length!==1?'睡眠有波动':quality.values[0]==='好'?'大多良好':quality.values[0]==='一般'?'整体一般':'睡得不稳'):sleeps.length&&durations.length===0?'时长待补':sleeps.length?'睡眠有记录':'今晚记睡眠';
   const moods=days.map(day=>asText(day.mood?.state)).filter(Boolean);
   const mood=mostFrequent(moods);
   const moodName=mood.values.length===1?(mood.values[0]==='复杂'?'说不清':mood.values[0]):moods.length?'有一些波动':'暂无记录';
@@ -49,7 +49,7 @@ function homeMonthlyOverview(stats:MonthlyHealthStats|null){
   const exerciseDays=days.filter(day=>asText(day.exercise?.type)).length;
   const exerciseDurations=days.map(day=>exerciseMinutes(day.exercise?.duration)).filter((value):value is number=>value!==null);
   const exerciseValue=exerciseDays>=2?`坚持 ${exerciseDays} 天`:exerciseDays===1?'动了 1 天':'从今天动一动';
-  const exerciseStatus=exerciseDays>=2&&exerciseDurations.length>=2?`累计${Math.round(exerciseDurations.reduce((sum,value)=>sum+value,0)/60)}时`:exerciseDays>=2?'运动已记':exerciseDays===1?'保持节奏':'去动一动';
+  const exerciseStatus=exerciseDays>=2&&exerciseDurations.length>=2?`累计${Math.round(exerciseDurations.reduce((sum,value)=>sum+value,0)/60)}时`:exerciseDays>=2?'运动有记录':exerciseDays===1?'保持节奏':'去动一动';
   return{days,recordedDays,sleep:{value:sleepValue,status:sleepStatus},mood:{value:moodName,status:moodStatus},exercise:{value:exerciseValue,status:exerciseStatus}};
 }
 function healthItemSummary(item:HealthDraftItem){
