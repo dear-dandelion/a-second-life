@@ -265,8 +265,15 @@ img,canvas{max-width:100%;height:auto}
   overscroll-behavior-y:contain;
   scrollbar-width:none;
 }
+.health-screen .record-dimension{
+  inline-size:100%;
+  min-inline-size:0;
+  scroll-margin-top:8px;
+}
+.health-screen .record-dimension+.record-dimension{margin-top:1px}
 .health-screen .record-tab-panel::-webkit-scrollbar{display:none}
-.health-screen .record-tab-panel>.record-section,
+.health-screen .record-tab-panel>.record-dimension,
+.health-screen .record-tab-panel>.record-dimension>.record-section,
 .health-screen>.record-editor>.record-actions{
   inline-size:100%;
   max-inline-size:100%;
