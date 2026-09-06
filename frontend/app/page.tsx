@@ -182,7 +182,10 @@ export default function App(){
 }
 
 function HomeView({go}:{go:(v:View)=>void}){
-  const demoActions=[{name:'走起来',Icon:PersonStanding},{name:'睡得好',Icon:Moon}] as const;
+  const demoActions=[
+    {name:'散步',duration:'20 分钟',description:'舒缓心情，促进代谢',Icon:PersonStanding},
+    {name:'睡前舒展',duration:'8 分钟',description:'放松身体，改善睡眠',Icon:Moon},
+  ] as const;
   const [monthlyStats,setMonthlyStats]=useState<MonthlyHealthStats|null>(null);
   const month=shanghaiMonth();
   useEffect(()=>{let active=true;services.healthRecords.monthly(month).then(value=>{if(active)setMonthlyStats(value)}).catch(()=>{if(active)setMonthlyStats(null)});return()=>{active=false}},[month]);
@@ -190,7 +193,7 @@ function HomeView({go}:{go:(v:View)=>void}){
   return <>
     <div className="home-heading"><h1>早上好，<br/>今天感觉怎么样？</h1><button className="icon-button" onClick={()=>go('month')}><CalendarDays/></button></div>
     <button type="button" className="hero-card chat-bg" onClick={()=>go('chat')}><div><h2>絮絮叨叨</h2><p>想说什么都可以，我在听</p></div><span className="dark-pill">开始聊聊 <ArrowRight/></span></button>
-    <section className="motion-card"><div className="motion-copy"><h2>今天动一动</h2><p>小步动起来，<br/>更年期，更年轻</p></div><button type="button" className="round-arrow" onClick={()=>go('actions')} aria-label="查看全部活动"><ChevronRight/></button><div style={{display:'flex',gap:12,padding:'4px 18px 12px',paddingLeft:30}}>{demoActions.map(({name,Icon})=><button type="button" key={name} onClick={()=>go('actions')} style={{width:72,height:72,borderRadius:16,border:0,outline:'none',background:'var(--surface)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6}}><Icon/><small style={{color:'var(--muted)'}}>{name}</small></button>)}</div></section>
+    <section className="motion-card"><div className="motion-copy"><h2>今天动一动</h2><p>小步动起来，<br/>更年期，更年轻</p></div><button type="button" className="round-arrow" onClick={()=>go('actions')} aria-label="查看全部活动"><ChevronRight/></button><div className="motion-recommend-list">{demoActions.map(({name,duration,description,Icon})=><button type="button" key={name} onClick={()=>go('actions')}><Icon/><span><b>{name} <small>{duration}</small></b><em>{description}</em></span><ChevronRight/></button>)}</div></section>
     <section className="month-card"><h2>这个月的我</h2><div className="metric-grid"><button type="button" onClick={()=>go('month')}><Moon/><b>睡眠</b><strong>{overview.sleep.value}</strong><span>{overview.sleep.status}</span></button><button type="button" onClick={()=>go('month')}><Smile/><b>心情</b><strong>{overview.mood.value}</strong><span>{overview.mood.status}</span></button><button type="button" onClick={()=>go('month')}><Sprout/><b>运动</b><strong>{overview.exercise.value}</strong><span>{overview.exercise.status}</span></button></div><div className="month-record-strip" aria-label={`本月已记录 ${overview.recordedDays} 天`}>{overview.days.length?overview.days.map(day=><i className={day.hasRecord?'active':''} key={day.date}/>):<i/>}</div><div className="month-coverage">本月已记录 {overview.recordedDays} 天</div></section>
   </>}
 

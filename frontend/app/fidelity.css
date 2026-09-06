@@ -1,6 +1,6 @@
 :root{--line:#e9e4dd}
 .tabbar button.active{margin-inline:8px}
-.month-card{padding-bottom:12px;background:linear-gradient(135deg,#f7f2eb 0%,#f8f4ee 62%,#f3ece4 100%)}
+.month-card{padding-bottom:12px;background:#f7f2eb}
 .metric-grid strong{max-width:100%;padding-inline:3px;line-height:1.25;text-align:center;overflow-wrap:anywhere}
 .month-record-strip{display:grid;grid-template-columns:repeat(31,minmax(0,1fr));align-items:center;gap:3px;margin:13px 4px 8px;min-height:6px}
 .month-record-strip i{height:4px;border-radius:999px;background:rgba(132,132,125,.16)}
