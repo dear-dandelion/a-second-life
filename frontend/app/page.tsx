@@ -28,6 +28,30 @@ type HealthUpdateNotice = { id:string; text:string; recordDate:string };
 
 const healthCategoryLabels:Record<string,string>={symptom:'症状',mood:'心情',sleep:'睡眠',menstrual:'经期',weight:'体重',appetite:'食欲',exercise:'运动',diet:'饮食',medication:'用药',lifeEvent:'生活事件',medicalNeed:'就医需求',other:'健康记录'};
 const displayValue=(value:unknown,fallback:string)=>typeof value==='string'||typeof value==='number'||typeof value==='boolean'?String(value):fallback;
+const shanghaiToday=()=>new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Shanghai'});
+const shanghaiMonth=()=>shanghaiToday().slice(0,7);
+const displayDuration=(minutes:number)=>`${Math.floor(minutes/60)}小时${minutes%60?`${minutes%60}分`:''}`;
+const asText=(value:unknown)=>typeof value==='string'?value.trim():'';
+function mostFrequent(values:string[]){const counts=new Map<string,number>();values.forEach(value=>counts.set(value,(counts.get(value)??0)+1));const max=Math.max(0,...counts.values());return{values:[...counts.entries()].filter(([,count])=>count===max).map(([value])=>value),count:max}}
+function homeMonthlyOverview(stats:MonthlyHealthStats|null){
+  const days=(stats?.days??[]).filter(day=>day.date<=shanghaiToday());
+  const recordedDays=days.filter(day=>day.hasRecord).length;
+  const sleeps=days.map(day=>day.sleep).filter((value):value is Record<string,unknown>=>Boolean(value));
+  const durations=sleeps.map(sleep=>Number(sleep.durationMinutes)).filter(value=>Number.isFinite(value)&&value>0);
+  const qualities=sleeps.map(sleep=>asText(sleep.quality)).filter(Boolean);
+  const quality=mostFrequent(qualities);
+  const sleepValue=durations.length>=2?displayDuration(Math.round((durations.reduce((sum,value)=>sum+value,0)/durations.length)/5)*5):sleeps.length?`已记录 ${sleeps.length} 晚`:'暂无记录';
+  const sleepStatus=durations.length>=2?(quality.values.length!==1?'睡眠有些波动':quality.values[0]==='好'?'大多良好':quality.values[0]==='一般'?'整体一般':'睡得不太踏实'):sleeps.length&&durations.length===0?'缺少具体时长':sleeps.length?'已记录睡眠时长':'今晚也可以记一下睡眠';
+  const moods=days.map(day=>asText(day.mood?.state)).filter(Boolean);
+  const mood=mostFrequent(moods);
+  const moodName=mood.values.length===1?(mood.values[0]==='复杂'?'说不清':mood.values[0]):moods.length?'有一些波动':'暂无记录';
+  const moodStatus=moods.length?`本月记录 ${moods.length} 天`:'说说今天的感受';
+  const exerciseDays=days.filter(day=>asText(day.exercise?.type)).length;
+  const exerciseDurations=days.map(day=>exerciseMinutes(day.exercise?.duration)).filter((value):value is number=>value!==null);
+  const exerciseValue=exerciseDays>=2?`坚持 ${exerciseDays} 天`:exerciseDays===1?'动了 1 天':'从今天动一动';
+  const exerciseStatus=exerciseDays>=2&&exerciseDurations.length>=2?`累计 ${exerciseDurations.reduce((sum,value)=>sum+value,0)} 分钟`:exerciseDays>=2?'已留下运动记录':exerciseDays===1?'继续保持自己的节奏':'记录一次运动';
+  return{days,recordedDays,sleep:{value:sleepValue,status:sleepStatus},mood:{value:moodName,status:moodStatus},exercise:{value:exerciseValue,status:exerciseStatus}};
+}
 function healthItemSummary(item:HealthDraftItem){
   const label=healthCategoryLabels[item.category]??'健康记录';if(item.operation==='delete')return`已删除${label}`;
   const data=item.data;if(typeof data==='string')return`${label}${data.slice(0,18)}`;if(!data)return`${label}已更新`;
@@ -159,11 +183,15 @@ export default function App(){
 
 function HomeView({go}:{go:(v:View)=>void}){
   const demoActions=[{name:'走起来',Icon:PersonStanding},{name:'睡得好',Icon:Moon}] as const;
+  const [monthlyStats,setMonthlyStats]=useState<MonthlyHealthStats|null>(null);
+  const month=shanghaiMonth();
+  useEffect(()=>{let active=true;services.healthRecords.monthly(month).then(value=>{if(active)setMonthlyStats(value)}).catch(()=>{if(active)setMonthlyStats(null)});return()=>{active=false}},[month]);
+  const overview=homeMonthlyOverview(monthlyStats);
   return <>
     <div className="home-heading"><h1>早上好，<br/>今天感觉怎么样？</h1><button className="icon-button" onClick={()=>go('month')}><CalendarDays/></button></div>
     <button type="button" className="hero-card chat-bg" onClick={()=>go('chat')}><div><h2>絮絮叨叨</h2><p>想说什么都可以，我在听</p></div><span className="dark-pill">开始聊聊 <ArrowRight/></span></button>
     <section className="motion-card"><div className="motion-copy"><h2>今天动一动</h2><p>小步动起来，<br/>更年期，更年轻</p></div><button type="button" className="round-arrow" onClick={()=>go('actions')} aria-label="查看全部活动"><ChevronRight/></button><div style={{display:'flex',gap:12,padding:'4px 18px 12px',paddingLeft:30}}>{demoActions.map(({name,Icon})=><button type="button" key={name} onClick={()=>go('actions')} style={{width:72,height:72,borderRadius:16,border:0,outline:'none',background:'var(--surface)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6}}><Icon/><small style={{color:'var(--muted)'}}>{name}</small></button>)}</div></section>
-    <section className="month-card"><h2>这个月的我</h2><div className="metric-grid"><button type="button" onClick={()=>go('month')}><Moon/><b>睡眠</b><strong>7.2<small>小时</small></strong><span>良好</span></button><button type="button" onClick={()=>go('month')}><Smile/><b>心情</b><strong>平稳</strong><span>值得肯定</span></button><button type="button" onClick={()=>go('month')}><Sprout/><b>身体</b><strong>轻盈</strong><span>保持中</span></button></div><div className="month-dates"><span>5/5</span><span>5/15</span><span>5/25</span><span>5/31</span></div></section>
+    <section className="month-card"><h2>这个月的我</h2><div className="metric-grid"><button type="button" onClick={()=>go('month')}><Moon/><b>睡眠</b><strong>{overview.sleep.value}</strong><span>{overview.sleep.status}</span></button><button type="button" onClick={()=>go('month')}><Smile/><b>心情</b><strong>{overview.mood.value}</strong><span>{overview.mood.status}</span></button><button type="button" onClick={()=>go('month')}><Sprout/><b>运动</b><strong>{overview.exercise.value}</strong><span>{overview.exercise.status}</span></button></div><div className="month-record-strip" aria-label={`本月已记录 ${overview.recordedDays} 天`}>{overview.days.length?overview.days.map(day=><i className={day.hasRecord?'active':''} key={day.date}/>):<i/>}</div><div className="month-coverage">本月已记录 {overview.recordedDays} 天</div></section>
   </>}
 
 function Community({soon}:{soon:()=>void}){return <><div className="top-title"><h1>交流广场</h1><button className="icon-button" onClick={soon}><ShoppingBag/></button></div><button className="searchbar" onClick={soon}><Search/>搜索帖子或话题</button><div className="feed">{posts.map(p=><article className={`post ${p.image?'has-image':''}`} key={p.name}><div className="post-user"><span>{p.emoji}</span><div><b>{p.name}</b><small>{p.time}</small></div></div><div className="post-body"><p>{p.text}</p>{p.image&&<button className="post-image" onClick={soon}>{p.image}</button>}</div><div className="post-actions"><button onClick={soon}><Heart/>{p.likes}</button><button onClick={soon}><MessageCircle/>{p.comments}</button><button onClick={soon}><Star/>收藏</button></div></article>)}</div><button className="fab" onClick={soon}><Plus/></button></>}
