@@ -77,14 +77,17 @@ export default function HealthRecordEditor({initialDate,onBack}:{initialDate?:st
   const panelRef=useRef<HTMLDivElement>(null);
   const tabsRef=useRef<HTMLElement>(null);
   const sectionRefs=useRef(new Map<HealthTab,HTMLDivElement>());
+  const navigationLockRef=useRef(false);
+  const navigationTimerRef=useRef<ReturnType<typeof setTimeout>|null>(null);
   const today=useMemo(()=>shanghaiToday(),[]);
 
   useEffect(()=>{services.healthRecords.list().then(setDates).catch(()=>setDates([]))},[]);
   useEffect(()=>{let active=true;services.healthRecords.get(date).then(value=>{if(active){const next=value??emptyRecord(date);setRecord(next);setActiveTab(HEALTH_TABS.find(tab=>tabCount(next,tab.id)>0)?.id??'symptoms')}}).catch(()=>{if(active){toast.add({title:'无法读取健康记录',type:'error'});setRecord(emptyRecord(date));setActiveTab('symptoms')}}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[date]);
   useEffect(()=>{const rail=tabsRef.current;const button=rail?.querySelector<HTMLButtonElement>(`button[data-health-tab="${activeTab}"]`);if(rail&&button)rail.scrollTo({left:button.offsetLeft-(rail.clientWidth-button.offsetWidth)/2,behavior:'smooth'})},[activeTab]);
-  useEffect(()=>{const root=panelRef.current;if(!root)return;const observer=new IntersectionObserver(entries=>{const current=entries.filter(entry=>entry.isIntersecting).sort((a,b)=>b.intersectionRatio-a.intersectionRatio)[0];const tab=current?.target.getAttribute('data-health-tab') as HealthTab|undefined;if(tab)setActiveTab(tab)},{root,rootMargin:'-8% 0px -64% 0px',threshold:[0.1,.35,.6]});sectionRefs.current.forEach(section=>observer.observe(section));return()=>observer.disconnect()},[loading]);
+  useEffect(()=>{const root=panelRef.current;if(!root)return;const observer=new IntersectionObserver(entries=>{if(navigationLockRef.current)return;const current=entries.filter(entry=>entry.isIntersecting).sort((a,b)=>b.intersectionRatio-a.intersectionRatio)[0];const tab=current?.target.getAttribute('data-health-tab') as HealthTab|undefined;if(tab)setActiveTab(tab)},{root,rootMargin:'-8% 0px -64% 0px',threshold:[0.1,.35,.6]});sectionRefs.current.forEach(section=>observer.observe(section));return()=>observer.disconnect()},[loading]);
+  useEffect(()=>()=>{if(navigationTimerRef.current)clearTimeout(navigationTimerRef.current)},[]);
   const changeDate=(value:string)=>{if(!value||value>today)return;setLoading(true);setDate(value)};
-  const changeTab=(next:HealthTab)=>{setActiveTab(next);sectionRefs.current.get(next)?.scrollIntoView({behavior:'smooth',block:'start'})};
+  const changeTab=(next:HealthTab)=>{navigationLockRef.current=true;if(navigationTimerRef.current)clearTimeout(navigationTimerRef.current);setActiveTab(next);sectionRefs.current.get(next)?.scrollIntoView({behavior:'smooth',block:'start'});navigationTimerRef.current=setTimeout(()=>{navigationLockRef.current=false},650)};
   const setSectionRef=(tab:HealthTab)=>(node:HTMLDivElement|null)=>{if(node)sectionRefs.current.set(tab,node);else sectionRefs.current.delete(tab)};
   const save=async()=>{setSaving(true);try{await services.healthRecords.save(date,{...record,date:date as HealthRecord['date']});setDates(await services.healthRecords.list());toast.add({title:'健康记录已保存',type:'success'})}catch{toast.add({title:'保存失败，请检查填写内容',type:'error'})}finally{setSaving(false)}};
 
