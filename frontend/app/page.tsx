@@ -241,7 +241,8 @@ function Trend({dimension,days}:{dimension:string;days:MonthlyHealthStats['days'
   const range=max-min||1;
   const x=(index:number)=>14+index*(292/Math.max(values.length,1));
   const width=Math.max(4,230/Math.max(values.length,1));
-  const y=(value:number)=>10+(max-Math.min(max,Math.max(min,value)))/range*120;
+  // Keep the shared 0 baseline close to the bottom axis across every bar chart.
+  const y=(value:number)=>12+(max-Math.min(max,Math.max(min,value)))/range*128;
   const zeroY=y(0);
   const axis=dimension==='我的睡眠'?['10小时','5小时','0小时']:dimension==='我的运动'?[durationLabel(max),durationLabel(Math.round(max/2)),'0分']:dimension==='我的心情'?['舒展 6','复杂 4','低落 1 / 无记录 0']:['高','中','0'];
   return <div className="trend-panel"><div className="trend-graph"><div className="trend-y-labels">{axis.map((label,index)=><span key={index}>{label}</span>)}</div><svg viewBox="0 0 320 150" aria-label={`${dimension}月度柱状图`}><line className="bar-zero-line" x1="8" x2="314" y1={zeroY} y2={zeroY}/>{values.map((point,index)=>{if(point.value===null||point.value===0)return null;const valueY=y(point.value);const top=Math.min(valueY,zeroY);return <rect className={`bar-fill ${point.marker}`} key={index} x={x(index)} y={top} width={width} height={Math.max(2,Math.abs(zeroY-valueY))} rx="2"><title>{point.label}</title></rect>})}</svg></div><div className="trend-labels"><span>1日</span><span>8日</span><span>15日</span><span>22日</span><span>月底</span></div><p>{numeric.some(Boolean)?'虚线为 0 基准；标注“缺乏具体数据”的柱为估算值':'本月暂无可绘制数据'}</p></div>
