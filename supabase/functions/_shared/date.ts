@@ -33,7 +33,8 @@ export function monthRange(month: string): { startDate: string; endDate: string 
 export function reportStartDate(range: "1_month" | "3_months" | "6_months", endDate: string): string {
   const months = range === "1_month" ? 1 : range === "3_months" ? 3 : 6;
   const [year, month] = endDate.split("-").map(Number);
-  return new Date(Date.UTC(year, month - months, 1)).toISOString().slice(0, 10);
+  // Previous N complete calendar months plus the current month through today.
+  return new Date(Date.UTC(year, month - months - 1, 1)).toISOString().slice(0, 10);
 }
 
 function isoFromParts(year: number, month: number, day: number): string | null {
@@ -61,6 +62,36 @@ export function resolveRecordDate(text: string, now = new Date()): string {
   const date = new Date(`${current}T00:00:00Z`);
   date.setUTCDate(date.getUTCDate() - days);
   return date.toISOString().slice(0, 10);
+}
+
+export interface DatedHealthText {
+  recordDate: string;
+  text: string;
+}
+
+/**
+ * Splits one conversational turn into date-scoped facts. A date reference
+ * applies to the words after it until the next reference; unqualified text is
+ * recorded today. This keeps "昨天睡不好，今天食欲下降" as two daily cards.
+ */
+export function splitHealthTextByDate(text: string, now = new Date()): DatedHealthText[] {
+  const marker = /\b20\d{2}-\d{1,2}-\d{1,2}\b|(?:(?:20\d{2})年)?\d{1,2}月\d{1,2}日|前天|昨天|今天/g;
+  const matches = [...text.matchAll(marker)];
+  if (matches.length === 0) return [{ recordDate: shanghaiDate(now), text }];
+
+  const dated: DatedHealthText[] = [];
+  const prefix = text.slice(0, matches[0].index).trim();
+  if (prefix) dated.push({ recordDate: shanghaiDate(now), text: prefix });
+  for (let index = 0; index < matches.length; index += 1) {
+    const current = matches[index];
+    const end = matches[index + 1]?.index ?? text.length;
+    const chunk = text.slice(current.index, end).trim();
+    if (chunk) dated.push({ recordDate: resolveRecordDate(current[0], now), text: chunk });
+  }
+
+  const groups = new Map<string, string[]>();
+  for (const item of dated) groups.set(item.recordDate, [...(groups.get(item.recordDate) ?? []), item.text]);
+  return [...groups].map(([recordDate, chunks]) => ({ recordDate, text: chunks.join("。") }));
 }
 
 export function resolveRecordMonth(text: string, now = new Date()): string {

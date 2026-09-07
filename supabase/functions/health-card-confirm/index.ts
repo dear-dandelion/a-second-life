@@ -1,5 +1,5 @@
 import { authenticate } from "../_shared/auth.ts";
-import { applyDraftItems, sha256 } from "../_shared/health.ts";
+import { applyDraftItems } from "../_shared/health.ts";
 import { ApiError, errorResponse, handleOptions, json, readJson, requireMethod } from "../_shared/http.ts";
 import type { HealthDraftItem, HealthRecord } from "../_shared/types.ts";
 
@@ -56,22 +56,21 @@ Deno.serve(async (request) => {
     if (readError) throw new ApiError("INTERNAL_ERROR", "无法读取当日记录", 500);
     const existing = (recordWrapper?.record ?? null) as HealthRecord | null;
     const nextRecord = applyDraftItems(existing, draft.record_date, selected);
-    const requestHash = await sha256({ draftId: body.draftId, selectedItems: body.selectedItems });
-
-    const { data: saveResult, error: saveError } = await userClient.rpc("confirm_health_card", {
-      draft_id: body.draftId,
-      selected_item_ids: selected.map((item) => item.clientItemId),
+    const categories = [...new Set(selected.map((item) => item.category))];
+    const { data: saveResult, error: saveError } = await userClient.rpc("patch_health_record", {
+      target_date: draft.record_date,
+      expected_version: existing?.version ?? 0,
       payload: nextRecord,
-      idempotency_key: idempotencyKey,
-      request_hash: requestHash,
+      categories,
     });
     if (saveError) {
-      const known = ["ROLE_NOT_ALLOWED", "DRAFT_NOT_FOUND", "ITEM_ALREADY_SAVED", "IDEMPOTENCY_CONFLICT"]
+      const known = ["ROLE_NOT_ALLOWED", "DRAFT_NOT_FOUND", "ITEM_ALREADY_SAVED", "IDEMPOTENCY_CONFLICT", "RECORD_VERSION_CONFLICT"]
         .find((code) => saveError.message.includes(code));
-      const status = known === "ROLE_NOT_ALLOWED" ? 403 : known === "DRAFT_NOT_FOUND" ? 404 : known?.includes("SAVED") || known === "IDEMPOTENCY_CONFLICT" ? 409 : 400;
+      const status = known === "ROLE_NOT_ALLOWED" ? 403 : known === "DRAFT_NOT_FOUND" ? 404 : known?.includes("SAVED") || known === "IDEMPOTENCY_CONFLICT" || known === "RECORD_VERSION_CONFLICT" ? 409 : 400;
       throw new ApiError(known ?? "VALIDATION_ERROR", known === "ROLE_NOT_ALLOWED" ? "当前账号暂不支持此功能" : known === "DRAFT_NOT_FOUND" ? "健康记录草案不存在或已过期" : known === "ITEM_ALREADY_SAVED" ? "该草案已经保存" : known === "IDEMPOTENCY_CONFLICT" ? "幂等键已用于不同请求" : "健康记录内容校验失败", status);
     }
-    return json(request, saveResult);
+    await adminClient.from("chat_card_drafts").update({ processed_at: new Date().toISOString() }).eq("id", draft.id).is("processed_at", null);
+    return json(request, { ...saveResult, savedItemCount: selected.length });
   } catch (error) {
     return errorResponse(request, error);
   }

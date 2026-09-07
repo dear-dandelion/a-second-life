@@ -1,5 +1,5 @@
 import { authenticate } from "../_shared/auth.ts";
-import { resolveRecordDate, resolveRecordMonth } from "../_shared/date.ts";
+import { resolveRecordDate, resolveRecordMonth, splitHealthTextByDate } from "../_shared/date.ts";
 import { applyDraftItems, enrichDraftItems } from "../_shared/health.ts";
 import { ApiError, errorResponse, handleOptions, readJson, requireMethod } from "../_shared/http.ts";
 import { chunkText, mockChatReply, mockExtractHealth } from "../_shared/mock-ai.ts";
@@ -220,39 +220,37 @@ Deno.serve(async (request) => {
           if (assistantError) throw new ApiError("INTERNAL_ERROR", "无法保存回复", 500);
 
           if (profile.user_type === "self_user") {
-            let items: HealthDraftItem[] = [];
-            let currentRecord: HealthRecord | null = null;
-            const targetRecordDate = resolveRecordDate(input.text);
-            if (navigation?.target !== "profile") try {
-                const { data: todayWrapper } = await userClient.rpc("get_health_record", { target_date: targetRecordDate });
-                currentRecord = (todayWrapper?.record ?? null) as HealthRecord | null;
-                items = isMockMode()
-                  ? mockExtractHealth(input.text, currentRecord)
-                  : await extractHealthWithModel(input.text, currentRecord);
-                items = enrichDraftItems(currentRecord, items);
-              } catch (error) {
-                console.warn("Health extraction skipped", error instanceof Error ? error.message : String(error));
-            }
-            if (items.length > 0) {
-              const nextRecord = applyDraftItems(currentRecord, targetRecordDate, items);
-              const { error: saveError } = await userClient.rpc("save_health_record", {
-                target_date: targetRecordDate,
+            if (navigation?.target !== "profile") for (const segment of splitHealthTextByDate(input.text)) try {
+              const { data: recordWrapper } = await userClient.rpc("get_health_record", { target_date: segment.recordDate });
+              const currentRecord = (recordWrapper?.record ?? null) as HealthRecord | null;
+              let items = isMockMode()
+                ? mockExtractHealth(segment.text, currentRecord)
+                : await extractHealthWithModel(segment.text, currentRecord, segment.recordDate);
+              items = enrichDraftItems(currentRecord, items);
+              if (!items.length) continue;
+              const nextRecord = applyDraftItems(currentRecord, segment.recordDate, items);
+              const categories = [...new Set(items.map((item) => item.category))];
+              const { error: saveError } = await userClient.rpc("patch_health_record", {
+                target_date: segment.recordDate,
+                expected_version: currentRecord?.version ?? 0,
                 payload: nextRecord,
+                categories,
               });
               if (saveError) {
+                const conflict = saveError.message.includes("RECORD_VERSION_CONFLICT");
                 console.warn("Automatic health-card update failed", saveError.message);
                 await writeSse(controller, "health_card_update_failed", {
-                  recordDate: targetRecordDate,
-                  message: "健康卡片自动更新失败，可稍后在健康卡片中手动补充",
+                  recordDate: segment.recordDate,
+                  message: conflict ? "这一天的记录刚刚更新，为避免覆盖你的修改，AI 没有自动保存，请在健康卡片中确认。" : "健康卡片自动更新失败，可稍后在健康卡片中手动补充",
                 }, sequence);
-              } else {
-                await writeSse(controller, "health_card_updated", {
-                  sourceMessageId: userMessageId,
-                  recordDate: targetRecordDate,
-                  items,
-                  savedItemCount: items.length,
-                }, sequence);
-              }
+              } else await writeSse(controller, "health_card_updated", {
+                sourceMessageId: userMessageId,
+                recordDate: segment.recordDate,
+                items,
+                savedItemCount: items.length,
+              }, sequence);
+            } catch (error) {
+              console.warn("Health extraction skipped", error instanceof Error ? error.message : String(error));
             }
           }
 

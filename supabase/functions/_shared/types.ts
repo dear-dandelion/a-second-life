@@ -44,6 +44,7 @@ export interface SymptomRecord {
 
 export interface HealthRecord {
   id?: string;
+  version?: number;
   date: string;
   symptoms: SymptomRecord[];
   mood?: Record<string, unknown>;

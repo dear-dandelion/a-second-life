@@ -110,6 +110,105 @@
 .personal-form.editable label>textarea{min-height:62px;max-height:104px;margin:0;border:0;background:transparent;box-shadow:none;resize:vertical;line-height:1.5}
 .personal-actions{margin-top:20px}.personal-actions .primary-wide{margin-top:10px}.badge-grid>div{height:110px}.achievement-preview{height:202px}
 
+/* Achievements: only real awards are illustrated; empty preview positions stay intentionally blank. */
+.achievement-preview-badges{display:flex;align-items:center;justify-content:space-around;gap:16px;padding:0 8px}.achievement-preview-badge{width:60px;height:60px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto}.achievement-preview-badge.empty{border:1.5px dashed #b9b6ae;background:transparent}.achievement-preview-badge.earned{border:1px solid color-mix(in srgb,var(--badge-color) 54%,#d4cec3);background:color-mix(in srgb,var(--badge-color) 18%,#fff);color:color-mix(in srgb,var(--badge-color) 80%,#697062);box-shadow:0 5px 12px color-mix(in srgb,var(--badge-color) 20%,transparent)}.achievement-preview-badge svg{width:28px;height:28px;stroke-width:1.35}.badge-record{--badge-color:#a6b79a}.badge-streak{--badge-color:#d4a0a2}.badge-study{--badge-color:#9db6bd}
+.badge-grid{margin-top:0}.badge-grid .badge-item{height:110px;border:1px solid var(--line);border-radius:18px;background:#f8f4ef;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:10px 6px;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,opacity .18s ease}.badge-grid .badge-item:focus-visible{outline:2px solid #a8b49a;outline-offset:2px}.badge-grid .badge-item.earned{border-color:color-mix(in srgb,var(--badge-color) 42%,var(--line));background:color-mix(in srgb,var(--badge-color) 11%,#f8f4ef);color:#41463f;box-shadow:0 4px 12px color-mix(in srgb,var(--badge-color) 13%,transparent)}.badge-grid .badge-item.earned:active{transform:scale(.97)}.badge-grid .badge-item.locked{background:#f6f3ee;color:#9a9892;opacity:.7}.badge-grid .badge-item.locked .badge-icon{border-color:#d4d0c8;background:#efede8;color:#aaa69f}.badge-grid .badge-item.locked .badge-icon>svg:last-child{fill:#9f9c95;color:#9f9c95}.badge-grid .badge-item.earned .badge-icon{border-color:color-mix(in srgb,var(--badge-color) 53%,#c8c1b8);background:color-mix(in srgb,var(--badge-color) 18%,transparent);color:color-mix(in srgb,var(--badge-color) 78%,#6f6c66)}.badge-grid .badge-item.earned .badge-icon>svg:last-child{display:none}
+.achievement-modal-backdrop{position:fixed;z-index:100;inset:0;display:grid;place-items:center;padding:24px;background:rgba(35,37,33,.28);backdrop-filter:blur(3px)}.achievement-modal{position:relative;width:min(300px,calc(100vw - 48px));border:1px solid rgba(255,255,255,.7);border-radius:23px;background:#fcfbf8;padding:27px 22px 22px;text-align:center;box-shadow:0 18px 48px rgba(48,46,40,.22)}.achievement-modal-close{position:absolute;top:10px;right:10px;width:32px;height:32px;border:0;border-radius:50%;background:#f2eee7;display:grid;place-items:center}.achievement-modal-close svg{width:17px}.achievement-modal-icon{width:64px;height:64px;margin:0 auto 13px;border-radius:50%;display:grid;place-items:center}.achievement-modal-icon svg{width:31px;height:31px}.achievement-modal-icon.earned{border:1px solid color-mix(in srgb,var(--badge-color) 55%,#c8c1b8);background:color-mix(in srgb,var(--badge-color) 18%,#fff);color:color-mix(in srgb,var(--badge-color) 80%,#687061)}.achievement-modal-icon.locked{border:1px solid #d5d1c9;background:#efede8;color:#aaa69f}.achievement-modal h2{margin:0 0 9px;font-size:18px}.achievement-modal p{margin:0;color:#6f706d;font-size:13px;line-height:1.65}.achievement-modal b,.achievement-modal small{display:block;margin-top:15px;font-size:12px}.achievement-modal b{color:#68745e}.achievement-modal small{color:#98958e}
+
+/* Personal details reuse the health-card form language: quiet grouped surfaces,
+   compact facts first, then spacious cards for information that needs context. */
+.personal-form.editable.personal-section{margin:0 0 12px;padding:12px;border:1px solid var(--line);border-radius:18px;background:#f8f6f1;box-shadow:none;overflow:hidden}
+.personal-form.editable.personal-section h3{display:flex;align-items:center;justify-content:space-between;min-height:29px;padding:0 1px 9px;margin:0;border-bottom:1px solid var(--line);font-size:15px;color:#343832}
+.personal-form.editable.personal-section h3 small{padding:3px 7px;border-radius:99px;background:#ece8df;color:#838077;font-size:10px;font-weight:400}
+.personal-form.editable.personal-section label{min-height:54px;height:auto;grid-template-columns:minmax(94px,1fr) minmax(0,1.15fr);gap:8px;padding:7px 1px;margin:0;border-bottom:1px solid var(--line)}
+.personal-form.editable.personal-section label>span{font-size:13px;color:#4f534c}
+.personal-form.editable.personal-section label>input,.personal-form.editable.personal-section label>select{height:38px;border:1px solid rgba(74,69,61,.09);border-radius:10px;background:rgba(255,255,255,.78);padding:0 10px;text-align:right;color:#444;box-shadow:none}
+.personal-form.editable.personal-section label>select{appearance:auto}
+.personal-form.editable.personal-section label:has(textarea){display:grid;grid-template-columns:1fr;gap:7px;min-height:0;padding:11px;margin-top:9px;border:1px solid rgba(74,69,61,.09);border-radius:13px;background:#fff;align-items:stretch}
+.personal-form.editable.personal-section label:has(textarea)>span{padding:0;font-size:12px;color:var(--muted)}
+.personal-form.editable.personal-section label>textarea{min-height:64px;max-height:130px;padding:0;border:0;background:transparent;color:#3f423e;line-height:1.65;box-shadow:none;resize:vertical}
+.personal-form.editable.personal-section label>input:focus,.personal-form.editable.personal-section label>select:focus,.personal-form.editable.personal-section label>textarea:focus{border-color:#a8b49a;outline:2px solid rgba(168,180,154,.13);outline-offset:0;color:#4d4e49}
+.personal-form.editable.personal-section label:has(textarea):focus-within{border-color:#a8b49a;box-shadow:0 0 0 2px rgba(168,180,154,.13)}
+.personal-form.editable.personal-section label:has(textarea):last-child{margin-bottom:0;border-bottom:1px solid rgba(74,69,61,.09)}
+.personal-form.editable.personal-section-basic{background:linear-gradient(145deg,#f1f4ec,#f8f6f1)}
+.personal-form.editable.personal-section-basic label:last-child{border-bottom:0}
+.personal-form.editable.personal-section~.privacy{margin:18px 0 11px;padding:0 8px;line-height:1.55}
+.personal-form.editable.personal-section~.primary-wide{position:sticky;bottom:0;z-index:8;margin:0!important;box-shadow:0 -12px 20px rgba(252,251,248,.86)}
+.screen-scroll.personal-screen{display:flex;min-height:0;overflow:hidden;padding:0 12px}
+.personal-view{height:100%;min-height:0;display:flex;flex:1;flex-direction:column}
+.personal-view>.page-header{position:relative;top:auto;flex:0 0 auto;margin:0 -2px;padding-inline:4px;background:#fcfbf8}
+.personal-editor{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:0 2px 12px;scrollbar-width:none}
+.personal-editor::-webkit-scrollbar{display:none}
+.personal-save{flex:0 0 auto;padding:11px 2px max(12px,env(safe-area-inset-bottom));background:#fcfbf8;border-top:1px solid color-mix(in srgb,var(--line) 72%,transparent)}
+.personal-save .primary-wide{height:48px!important;margin:0!important;border-radius:999px!important}
+
+/* Standard secondary pages use the same pinned title treatment as the two
+   dedicated workspaces. Their content alone scrolls beneath the header. */
+.screen-scroll.secondary-screen{display:flex;min-height:0;overflow:hidden;padding:0 12px}
+.detail-workspace{height:100%;min-height:0;display:flex;flex:1;flex-direction:column;overflow:hidden}
+.detail-workspace>.page-header{position:relative;top:auto;flex:0 0 auto;margin:0 -2px;padding-inline:4px;background:#fcfbf8}
+.detail-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:0 2px calc(96px + env(safe-area-inset-bottom));scrollbar-width:none}
+.detail-scroll::-webkit-scrollbar{display:none}
+.detail-footer{flex:0 0 auto;padding:10px 2px max(10px,env(safe-area-inset-bottom));background:#fcfbf8;border-top:1px solid rgba(74,69,61,.08)}
+.detail-workspace:has(.range-preview-action) .detail-scroll{padding-bottom:14px}
+.detail-workspace:has(.report-footer-actions) .detail-scroll{padding-bottom:14px}
+.detail-footer .report-footer-actions{position:static;margin:0;padding:0;background:transparent}
+.report-section .report-edit-row{width:100%;min-height:42px;padding:7px 0;border:0;border-bottom:1px solid rgba(91,87,79,.08);background:transparent;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) 15px;align-items:center;text-align:left;font:inherit;cursor:pointer}
+.report-section .report-edit-row:last-child{border-bottom:0}.report-edit-row span{min-width:0}.report-edit-row b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:400;color:#555}.report-edit-row svg{width:14px}.report-inline-editor{margin-bottom:12px}.report-inline-editor textarea{min-height:108px;margin-top:7px}.report-inline-actions{display:grid;grid-template-columns:1fr 1.3fr;gap:8px}.report-inline-actions button{height:44px}
+.report-section .report-edit-row:hover,.report-section .report-edit-row:focus-visible{background:#f4f7f0;outline:none}.report-section .report-edit-row:focus-visible{box-shadow:inset 0 0 0 1px #a8b49a}
+.report-editor-card{margin:12px 0;border:1px solid #a8b49a;border-radius:17px;overflow:hidden;background:#f4f7f0;box-shadow:0 8px 20px rgba(104,123,88,.08)}
+.report-editor-card>header{padding:12px 13px 10px;border-bottom:1px solid rgba(106,126,90,.16);display:grid;grid-template-columns:auto minmax(0,1fr);align-items:baseline;column-gap:8px;row-gap:3px}.report-editor-card>header span{color:#76856a;font-size:10px}.report-editor-card>header b{font-size:14px;color:#394135}.report-editor-card>header small{grid-column:1/-1;color:#7b8275;font-size:10px}
+.report-editor-field{display:grid;grid-template-columns:92px minmax(0,1fr);gap:10px;align-items:start;padding:12px 13px;background:#fffdfa}.report-editor-field>span{padding-top:10px;color:#686c64;font-size:12px;white-space:nowrap}.report-editor-field input,.report-editor-field textarea{width:100%;border:1px solid rgba(91,87,79,.12);border-radius:10px;background:#fff;box-shadow:none}.report-editor-field input{height:40px}.report-editor-field textarea{min-height:104px;padding:10px 11px;line-height:1.6}.report-editor-field input:focus,.report-editor-field textarea:focus{border-color:#a8b49a;outline:2px solid rgba(168,180,154,.16)}
+.report-editor-actions{display:grid;grid-template-columns:1fr 1.35fr;gap:8px;padding:10px 13px 12px;background:#f4f7f0}.report-editor-actions button{height:44px;border-radius:12px}.report-editor-actions button:last-child{background:#9eab91;color:#fff}
+
+.report-form-section{margin-top:12px;padding:11px;border:1px solid rgba(89,84,76,.1);border-radius:17px;background:#f8f6f1;min-width:0}
+.report-form-section h3{margin:0 0 7px;font-size:15px;letter-spacing:-.1px}
+.report-form-card{overflow:hidden;border:1px solid rgba(91,87,79,.07);border-radius:15px;background:#fff}
+.report-form-field{display:grid;grid-template-columns:86px minmax(0,1fr);align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid rgba(91,87,79,.08);min-width:0}
+.report-form-field:last-child{border-bottom:0}
+.report-form-field>span,.report-form-field>label{font-family:inherit;font-size:12px;font-weight:400;color:#686c64;overflow-wrap:anywhere}
+.report-field-content{min-width:0}.report-source-details{margin-top:6px;font-size:11px;color:#686c64}.report-source-details summary{cursor:pointer}.report-source-details p{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6}.report-source-notice{font-size:11px;color:#8b6540;line-height:1.5;margin:6px 0}
+.report-form-field input,.report-form-field textarea,.report-form-field select{width:100%;min-width:0;border:1px solid rgba(91,87,79,.1);border-radius:8px;background:#fffdfa;box-shadow:none;font-family:inherit;font-size:14px;font-weight:400;line-height:1.4;color:#4d4e49;text-align:left}
+.report-form-field input,.report-form-field select{height:34px}
+.report-form-field select{padding:0 8px}
+.report-form-field textarea{min-height:58px;resize:vertical;align-self:start;field-sizing:content}
+.report-form-field input::placeholder,.report-form-field textarea::placeholder{font:inherit;color:#a3a29b;opacity:1}
+.report-form-field select:has(option[value=""]:checked){color:#a3a29b}
+.report-form-field input:focus,.report-form-field textarea:focus,.report-form-field select:focus{border-color:#a8b49a;outline:2px solid rgba(168,180,154,.13);outline-offset:0;box-shadow:none}
+
+/* Match health-card field typography for both preview values and editing. */
+.report-editor-field>span,
+.report-section .report-edit-row>span{
+  font-family:inherit;
+  font-size:12px;
+  font-weight:400;
+  color:#686c64;
+}
+.report-editor-field input,
+.report-editor-field textarea,
+.report-section .report-edit-row>b{
+  font-family:inherit;
+  font-size:14px;
+  font-weight:400;
+  line-height:1.4;
+  color:#4d4e49;
+}
+.report-editor-field input::placeholder,
+.report-editor-field textarea::placeholder{
+  font:inherit;
+  color:#a3a29b;
+  opacity:1;
+}
+
+/* Report range keeps its only primary action visible while the choices and
+   coverage details scroll independently above it. */
+.detail-scroll .range-preview-action{
+  width:100%;
+  height:56px;
+  margin:0!important;
+  box-sizing:border-box;
+}
+
 /* Responsive artwork crops: keep the key illustration visible as card ratios change. */
 .hero-card.chat-bg{
   background-image:url('/card-chat-sage-bg-v2.png');
@@ -327,6 +426,7 @@ img,canvas{max-width:100%;height:auto}
 .health-screen .mood-more .record-grid{margin:0}
 .health-screen .mood-more>.record-field,.health-screen .mood-more>.record-grid>.record-field{padding:10px 12px!important;border-top:1px solid rgba(91,87,79,.08)!important;border-bottom:0!important}
 .health-screen .record-tab-panel::-webkit-scrollbar{display:none}
+.health-quantity{min-width:0}.health-quantity>div{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:7px}.health-quantity>div>span{font-size:12px;color:#686c64;white-space:nowrap}.health-quantity small{display:block;margin-top:5px;font-size:11px;color:#8b6540;overflow-wrap:anywhere}
 .health-screen .record-tab-panel>.record-dimension,
 .health-screen .record-tab-panel>.record-dimension>.record-section,
 .health-screen>.record-editor>.record-actions{

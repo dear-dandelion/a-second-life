@@ -1,11 +1,22 @@
 import type { HealthDraftItem, HealthRecord } from "./types.ts";
+import { normalizeQuantity, type QuantityKind } from './health-units.ts';
 
 function cloneRecord(record: HealthRecord | null, date: string): HealthRecord {
   return record ? structuredClone(record) : { date, symptoms: [], medications: [], lifeEvents: [] };
 }
 
 function normalizedData(item: HealthDraftItem): Record<string, unknown> | string | undefined {
-  return item.after ?? item.data;
+  const data = item.after ?? item.data;
+  if(item.operation==='delete')return data;
+  if(!data || typeof data !== 'object')return data;
+  const next = {...data};
+  const fields: Array<[string,QuantityKind]> = item.category==='weight' ? [['amount','weight']] : item.category==='exercise' ? [['duration','duration'],['frequency','exerciseFrequency']] : [];
+  for(const [key,kind] of fields)if(next[key]!==undefined){
+    const normalized=normalizeQuantity(next[key],kind);
+    if(normalized===null)throw new Error(`HEALTH_UNIT_INVALID: ${key} 单位或数值不明确，请补充`);
+    next[key]=normalized || undefined;
+  }
+  return next;
 }
 
 function updateById<T extends { id?: string }>(items: T[], targetId: string, patch: Record<string, unknown>): T[] {
@@ -145,9 +156,13 @@ function sanitizeRecord(record: HealthRecord): HealthRecord {
   if (menstrual) {
     const events = ["来了", "没来", "量多", "量少", "淋漓不尽", "非经期出血", "痛经", "停经"];
     if (menstrual.event !== undefined && !events.includes(String(menstrual.event))) delete menstrual.event;
-    if (menstrual.date !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(String(menstrual.date))) delete menstrual.date;
+    // A menstrual/bleeding entry belongs to its health-card date.  A distinct
+    // clinical event date will use a separate field when that feature exists.
+    delete menstrual.date;
     if (menstrual.daysSinceLast !== undefined && !Number.isInteger(menstrual.daysSinceLast)) delete menstrual.daysSinceLast;
   }
+  const weight = record.weight as unknown as Record<string, unknown> | undefined;
+  if (weight) delete weight.date;
   const diet = record.diet as unknown as Record<string, unknown> | undefined;
   if (diet) {
     if (diet.mealsRegular !== undefined && typeof diet.mealsRegular !== "boolean") delete diet.mealsRegular;

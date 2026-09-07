@@ -1,9 +1,10 @@
 'use client';
 
-import type { ChatSseEvent, FrontendServices, HealthDraftItem, HealthRecord, MonthlyHealthStats, MonthlySummary, NavigationTarget, Profile, Recommendation } from './contracts';
+import type { ChatSseEvent, FrontendServices, HealthCategory, HealthDraftItem, HealthRecord, MonthlyHealthStats, MonthlySummary, NavigationTarget, Profile, Recommendation, ReportCoverage, ReportDraft, ReportPreview, ReportRange } from './contracts';
 import { currentAccessToken } from './auth';
 import { getSupabase } from './supabase';
 import { createClientId } from './id';
+import { buildReportFields } from '../../supabase/functions/_shared/report-fields';
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -38,8 +39,24 @@ let profile: Profile = { id: 'demo-user', userType: 'self_user', birthYear: 1978
 const today = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Shanghai' }) as HealthRecord['date'];
 const mockRecordStore = new Map<string, HealthRecord>();
 const mockDraftDates = new Map<string,string>();
+const mockReportDrafts = new Map<string, ReportDraft>();
+function mockReportPreview(range: ReportRange): ReportPreview {
+  const { startDate, endDate } = mockReportCoverage(range);
+  const records = [...mockRecordStore.values()].filter(record => record.date >= startDate && record.date <= endDate).sort((a,b) => b.date.localeCompare(a.date));
+  const symptomNames = [...new Set(records.flatMap(record => record.symptoms.filter(item => item.occurred).map(item => item.symptom)))];
+  return { reportId: null, range:{startDate,endDate}, profile:{birthYear:profile.birthYear,height:profile.heightCm,menopausalStatus:profile.menopausalStatus||null,usesMedication:Boolean(profile.regularMedications),chiefComplaint:records.find(item=>item.medicalNeeds)?.medicalNeeds ?? '',medicalHistory:profile.medicalHistory,surgeryHistory:profile.surgeryHistory,medications:profile.regularMedications?[{name:profile.regularMedications,status:'长期/规律用药'}]:[],allergies:profile.allergyHistory?[profile.allergyHistory]:[],pregnancyHistory:profile.pregnancyHistory||null,familyHistory:profile.familyHistory||null,screenings:profile.screeningHistory||null},summary:{menstrual:records.some(item=>item.menstrual)?`所选范围内有 ${records.filter(item=>item.menstrual).length} 天月经或出血相关记录。`:'所选范围内暂无月经与出血记录。',symptoms:symptomNames.map(symptom=>({symptom,days:records.filter(record=>record.symptoms.some(item=>item.occurred&&item.symptom===symptom)).length,frequencySummary:'来自健康卡片记录',severityMode:null,trend:null,quotes:[]})),weight:records.some(item=>item.weight)?'所选范围内有体重变化记录。':'所选范围内暂无体重变化记录。',exercise:records.some(item=>item.exercise)?'所选范围内有运动记录。':'所选范围内暂无运动记录。'},dataWarnings:records.length ? (records.length < 7 ? ['记录天数较少，请在就医前核对并补充。'] : []) : ['所选范围内没有健康记录；可继续填写本次就医补充。']};
+}
+function mockReportCoverage(range: ReportRange): ReportCoverage {
+  const endDate = today(); const months = range === '1_month' ? 1 : range === '3_months' ? 3 : 6;
+  const [year, month] = endDate.split('-').map(Number);
+  const startDate = new Date(Date.UTC(year, month - months - 1, 1)).toISOString().slice(0, 10);
+  const totalDays = Math.floor((Date.parse(`${endDate}T00:00:00Z`) - Date.parse(`${startDate}T00:00:00Z`)) / 86400000) + 1;
+  const recordedDays = [...mockRecordStore.keys()].filter((date) => date >= startDate && date <= endDate).length;
+  return { range, startDate, endDate, totalDays, recordedDays, coveragePercent: totalDays ? Math.round((recordedDays / totalDays) * 100) : 0 };
+}
 const asText = (value: unknown, fallback = '') => typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' ? String(value) : fallback;
-function mockDate(text:string){const current=today();const iso=text.match(/\b(20\d{2})-(\d{1,2})-(\d{1,2})\b/);if(iso)return`${iso[1]}-${iso[2].padStart(2,'0')}-${iso[3].padStart(2,'0')}`;const md=text.match(/(\d{1,2})月(\d{1,2})日/);if(md)return`${current.slice(0,4)}-${md[1].padStart(2,'0')}-${md[2].padStart(2,'0')}`;if(text.includes('昨天')){const date=new Date(`${current}T00:00:00Z`);date.setUTCDate(date.getUTCDate()-1);return date.toISOString().slice(0,10)}return current}
+function mockDate(text:string){const current=today();const iso=text.match(/\b(20\d{2})-(\d{1,2})-(\d{1,2})\b/);if(iso)return`${iso[1]}-${iso[2].padStart(2,'0')}-${iso[3].padStart(2,'0')}`;const md=text.match(/(\d{1,2})月(\d{1,2})日/);if(md)return`${current.slice(0,4)}-${md[1].padStart(2,'0')}-${md[2].padStart(2,'0')}`;const ago=text.includes('前天')?2:text.includes('昨天')?1:0;if(ago){const date=new Date(`${current}T00:00:00Z`);date.setUTCDate(date.getUTCDate()-ago);return date.toISOString().slice(0,10)}return current}
+function mockDatedTexts(text:string){const markers=[...text.matchAll(/\b20\d{2}-\d{1,2}-\d{1,2}\b|\d{1,2}月\d{1,2}日|前天|昨天|今天/g)];if(!markers.length)return[{date:mockDate(text),text}];return markers.map((marker,index)=>({date:mockDate(marker[0]),text:text.slice(marker.index,markers[index+1]?.index??text.length)}));}
 
 function mockHealthItems(text: string): HealthDraftItem[] {
   const items: HealthDraftItem[] = [];
@@ -75,7 +92,8 @@ const mockServices: FrontendServices = {
     async *stream(text, clientMessageId, _conversationId, signal): AsyncIterable<ChatSseEvent> {
       yield { type: 'message_started', data: { conversationId: 'demo-conversation', clientMessageId } };
       const normalized = text.trim();
-      const healthItems = mockHealthItems(normalized);
+      const healthSegments=mockDatedTexts(normalized).map(segment=>({...segment,items:mockHealthItems(segment.text)}));
+      const healthItems = healthSegments.flatMap(segment=>segment.items);
       const navigation = mockNavigation(normalized);
       if(navigation) yield { type:'navigation', data:navigation };
       const healthSignal = healthItems.length > 0;
@@ -87,7 +105,7 @@ const mockServices: FrontendServices = {
         await wait(220);
         yield { type: 'text_delta', data: { delta: sentence } };
       }
-      if (healthSignal) {const draftId=createClientId();const recordDate=mockDate(text);mockDraftDates.set(draftId,recordDate);await mockServices.healthCard.confirm(draftId,healthItems,createClientId());yield { type: 'health_card_updated', data: { recordDate:recordDate as HealthRecord['date'], items:healthItems, savedItemCount:healthItems.length } };}
+      if (healthSignal) for(const segment of healthSegments){if(!segment.items.length)continue;const draftId=createClientId();mockDraftDates.set(draftId,segment.date);await mockServices.healthCard.confirm(draftId,segment.items,createClientId());yield { type: 'health_card_updated', data: { recordDate:segment.date as HealthRecord['date'], items:segment.items, savedItemCount:segment.items.length } };}
       yield { type: 'message_completed', data: { messageId: createClientId(), speakableText: answer } };
     },
   },
@@ -109,7 +127,7 @@ const mockServices: FrontendServices = {
   healthRecords: {
     async list(){return [...mockRecordStore.keys()].sort().reverse().map(date=>({date:date as HealthRecord['date'],updatedAt:new Date().toISOString()}));},
     async get(date){return structuredClone(mockRecordStore.get(date)??null);},
-    async save(date,record){mockRecordStore.set(date,structuredClone({...record,date:date as HealthRecord['date']}));return{recordId:record.id??createClientId(),recordDate:date};},
+    async save(date,record,expectedVersion,_categories){const existing=mockRecordStore.get(date);if((existing?.version??0)!==expectedVersion)throw new Error('RECORD_VERSION_CONFLICT');const version=expectedVersion+1;mockRecordStore.set(date,structuredClone({...record,date:date as HealthRecord['date'],version}));return{recordId:record.id??createClientId(),recordDate:date,version};},
     async monthly(month){const [year,monthNumber]=month.split('-').map(Number);const total=new Date(year,monthNumber,0).getDate();const days=Array.from({length:total},(_,index)=>{const date=`${month}-${String(index+1).padStart(2,'0')}` as HealthRecord['date'];const record=mockRecordStore.get(date);const hotFlash=record?.symptoms.find(item=>item.symptom==='潮热');return{date,hasRecord:Boolean(record),sleep:record?.sleep??null,hotFlash:hotFlash??null,mood:record?.mood??null,exercise:record?.exercise??null}});return{month:month as MonthlyHealthStats['month'],days,digest:{text:`本月已记录 ${days.filter(day=>day.hasRecord).length} 天。`,highlights:[]}};},
   },
   speech: {
@@ -126,6 +144,11 @@ const mockServices: FrontendServices = {
   summaries: {
     async list() { await wait(180); return summaries; },
     async get(month) { await wait(180); return summaries.find((item) => item.month === month) ?? summaries[0]; },
+  },
+  reports: {
+    async preview(range) { await wait(220); const preview=mockReportPreview(range); return {...preview,aggregationVersion:'health-fields-1',generatedAt:new Date().toISOString(),fields:buildReportFields([...mockRecordStore.values()].filter(r=>r.date>=preview.range.startDate&&r.date<=preview.range.endDate))}; },
+    async coverage(range) { await wait(120); return mockReportCoverage(range); },
+    async saveDraft(input) { await wait(160); const id=input.id ?? createClientId(); const draft:ReportDraft={id,range:input.range,snapshot:structuredClone(input.snapshot),overrides:structuredClone(input.overrides),status:'draft',updatedAt:new Date().toISOString()}; mockReportDrafts.set(id,draft); return structuredClone(draft); },
   },
 };
 
@@ -262,7 +285,7 @@ const realServices: FrontendServices = {
   healthRecords: {
     async list(){
       const client=getSupabase();
-      const {data,error}=await client.from('health_records').select('record_date,updated_at').order('record_date',{ascending:false}).limit(180);
+      const {data,error}=await client.from('health_records').select('record_date,updated_at').order('record_date',{ascending:false}).limit(2200);
       if(error)throw new Error(`HEALTH_LIST_FAILED ${error.message}`);
       return (data??[]).map(row=>({date:String(row.record_date) as HealthRecord['date'],updatedAt:String(row.updated_at)}));
     },
@@ -272,11 +295,11 @@ const realServices: FrontendServices = {
       if(error)throw new Error(`HEALTH_GET_FAILED ${error.message}`);
       return (data?.record??null) as HealthRecord|null;
     },
-    async save(date,record){
+    async save(date,record,expectedVersion,categories:HealthCategory[]){
       const client=getSupabase();
-      const {data,error}=await client.rpc('save_health_record',{target_date:date,payload:record});
-      if(error)throw new Error(`HEALTH_SAVE_FAILED ${error.message}`);
-      return {recordId:String(data.recordId??''),recordDate:String(data.recordDate??date)};
+      const {data,error}=await client.rpc('patch_health_record',{target_date:date,expected_version:expectedVersion,payload:record,categories});
+      if(error)throw new Error(error.message.includes('RECORD_VERSION_CONFLICT')?'RECORD_VERSION_CONFLICT':`HEALTH_SAVE_FAILED ${error.message}`);
+      return {recordId:String(data.recordId??''),recordDate:String(data.recordDate??date),version:Number(data.version??expectedVersion+1)};
     },
     async monthly(month){
       const client=getSupabase();const {data,error}=await client.rpc('get_monthly_stats',{target_month:month});
@@ -347,6 +370,24 @@ const realServices: FrontendServices = {
           key: String(dim.key ?? ''), title: String(dim.title ?? dim.key ?? ''), content: String(dim.content ?? ''),
         })),
       };
+    },
+  },
+  reports: {
+    async preview(range, chiefComplaint) { return requestJson<ReportPreview>('report-preview',{method:'POST',body:JSON.stringify({range,chiefComplaint})}); },
+    async coverage(range) {
+      const client=getSupabase();
+      const {data,error}=await client.rpc('get_report_coverage_for_range',{target_range:range});
+      if(error || !data) throw new Error(`REPORT_COVERAGE_FAILED ${error?.message ?? ''}`);
+      return { range:data.range as ReportRange, startDate:String(data.startDate), endDate:String(data.endDate), totalDays:Number(data.totalDays), recordedDays:Number(data.recordedDays), coveragePercent:Number(data.coveragePercent) };
+    },
+    async saveDraft(input) {
+      const client=getSupabase(); const {data:authData}=await client.auth.getUser(); const userId=authData.user?.id;
+      if(!userId) throw new Error('NOT_AUTHENTICATED');
+      const payload={user_id:userId,range:input.range,snapshot:input.snapshot,overrides:input.overrides,status:'draft'};
+      const query=input.id ? client.from('medical_report_drafts').update(payload).eq('id',input.id) : client.from('medical_report_drafts').insert(payload);
+      const {data,error}=await query.select('id,range,snapshot,overrides,status,updated_at').single();
+      if(error||!data) throw new Error(`REPORT_DRAFT_SAVE_FAILED ${error?.message??''}`);
+      return {id:String(data.id),range:data.range as ReportRange,snapshot:data.snapshot as ReportPreview,overrides:(data.overrides??{}) as Record<string,string>,status:data.status as 'draft'|'exported',updatedAt:String(data.updated_at)};
     },
   },
 };

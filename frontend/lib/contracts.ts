@@ -54,6 +54,8 @@ export interface HealthDraftItem {
 
 export interface HealthRecord {
   id?: string;
+  /** Incremented by the database after every accepted partial update. */
+  version?: number;
   date: ISODate;
   symptoms: Array<{
     id?: string; symptom: string; occurred: boolean; severity?: Severity;
@@ -62,8 +64,8 @@ export interface HealthRecord {
   }>;
   mood?: { id?: string; state: MoodState; intensity?: MoodIntensity; description?: string; trigger?: string; source?: 'manual' | 'ai'; confidence?: number; quote?: string };
   sleep?: { id?: string; quality?: '好' | '一般' | '差'; bedtime?: string; wakeTime?: string; nightWakes?: number; detail?: string };
-  menstrual?: { id?: string; event: '来了' | '没来' | '量多' | '量少' | '淋漓不尽' | '非经期出血' | '痛经' | '停经'; date?: string; daysSinceLast?: number; note?: string };
-  weight?: { id?: string; direction: '增加' | '减少'; amount?: string; speed?: '突然' | '缓慢'; date?: string };
+  menstrual?: { id?: string; event: '来了' | '没来' | '量多' | '量少' | '淋漓不尽' | '非经期出血' | '痛经' | '停经'; daysSinceLast?: number; note?: string };
+  weight?: { id?: string; direction: '增加' | '减少'; amount?: string; speed?: '突然' | '缓慢' };
   appetite?: '增加' | '减少' | '正常';
   exercise?: { id?: string; type: string; duration?: string; frequency?: string; intensity?: '轻松' | '适中' | '累' };
   diet?: { id?: string; mealsRegular?: boolean; foods?: string[]; water?: '充足' | '偏少'; caffeine?: string; alcohol?: string; smoking?: boolean };
@@ -78,6 +80,36 @@ export interface MonthlyHealthStats {
   month: `${number}-${number}`;
   days: Array<{date:ISODate;hasRecord:boolean;sleep?:Record<string,unknown>|null;hotFlash?:Record<string,unknown>|null;mood?:Record<string,unknown>|null;exercise?:Record<string,unknown>|null}>;
   digest?: {text:string;highlights:string[]}|null;
+}
+
+export type ReportRange = '1_month' | '3_months' | '6_months';
+export interface ReportPreview {
+  aggregationVersion?: string;
+  generatedAt?: string;
+  fields?: Record<string, { text: string; details?:string; notice?:string; state: 'recorded' | 'missing'; sources: Array<{recordId:string;recordDate:string;version:number}> }>;
+  reportId: string | null;
+  range: { startDate: string; endDate: string };
+  profile: {
+    birthYear: number | null; height: number | null; menopausalStatus: string | null;
+    usesMedication: boolean | null; chiefComplaint: string; medicalHistory: string;
+    regularMedications?: string;
+    surgeryHistory: string; medications: Array<{ name: string; status: string }>;
+    allergies: string[]; pregnancyHistory: string | null; familyHistory: string | null;
+    screenings: string | null;
+  };
+  summary: { menstrual: string; symptoms: Array<{ symptom: string; days: number; frequencySummary: string; severityMode: string | null; trend: string | null; quotes: string[] }>; weight: string; exercise: string };
+  dataWarnings: string[];
+}
+export interface ReportDraft {
+  id: string; range: ReportRange; snapshot: ReportPreview; overrides: Record<string, string>; status: 'draft' | 'exported'; updatedAt: string;
+}
+export interface ReportCoverage {
+  range: ReportRange;
+  startDate: string;
+  endDate: string;
+  totalDays: number;
+  recordedDays: number;
+  coveragePercent: number;
 }
 
 export type ChatSseEvent =
@@ -101,7 +133,7 @@ export interface FrontendServices {
   healthRecords: {
     list(): Promise<HealthRecordSummary[]>;
     get(date: string): Promise<HealthRecord | null>;
-    save(date: string, record: HealthRecord): Promise<{ recordId: string; recordDate: string }>;
+    save(date: string, record: HealthRecord, expectedVersion: number, categories: HealthCategory[]): Promise<{ recordId: string; recordDate: string; version: number }>;
     monthly(month: string): Promise<MonthlyHealthStats>;
   };
   speech: {
@@ -111,4 +143,9 @@ export interface FrontendServices {
   profile: { get(): Promise<Profile>; update(input: Omit<Profile, 'id' | 'userType'>): Promise<Profile> };
   rephrase: { rephrase(text: string, options?: { audience?: '伴侣' | '家人' | '朋友' | '同事' | '不指定' }): Promise<string> };
   summaries: { list(): Promise<MonthlySummary[]>; get(month: string): Promise<MonthlySummary> };
+  reports: {
+    preview(range: ReportRange, chiefComplaint?: string): Promise<ReportPreview>;
+    coverage(range: ReportRange): Promise<ReportCoverage>;
+    saveDraft(input: { id?: string; range: ReportRange; snapshot: ReportPreview; overrides: Record<string, string> }): Promise<ReportDraft>;
+  };
 }
