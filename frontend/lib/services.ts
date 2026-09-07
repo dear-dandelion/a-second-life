@@ -4,7 +4,6 @@ import type { ChatSseEvent, FrontendServices, HealthCategory, HealthDraftItem, H
 import { currentAccessToken } from './auth';
 import { getSupabase } from './supabase';
 import { createClientId } from './id';
-import { buildReportFields } from '../../supabase/functions/_shared/report-fields';
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -53,6 +52,28 @@ function mockReportCoverage(range: ReportRange): ReportCoverage {
   const totalDays = Math.floor((Date.parse(`${endDate}T00:00:00Z`) - Date.parse(`${startDate}T00:00:00Z`)) / 86400000) + 1;
   const recordedDays = [...mockRecordStore.keys()].filter((date) => date >= startDate && date <= endDate).length;
   return { range, startDate, endDate, totalDays, recordedDays, coveragePercent: totalDays ? Math.round((recordedDays / totalDays) * 100) : 0 };
+}
+type MockReportField = NonNullable<ReportPreview['fields']>[string];
+function mockReportFields(): NonNullable<ReportPreview['fields']> {
+  // 演示模式的报告字段为写死的假数据，不依赖后端聚合模块，也不参与真实统计口径。
+  const sources = (dates: string[]): MockReportField['sources'] => dates.map((date, index) => ({ recordId: `demo-${index + 1}`, recordDate: date, version: 1 }));
+  const missing = (): MockReportField => ({ text: '', state: 'missing', sources: [] });
+  return {
+    menstrual: { text: '所选范围内有 3 天月经或出血相关记录。', details: '2026-09-01：来了，距上次 28 天\n2026-09-02：来了，量多\n2026-09-03：来了，量少', state: 'recorded', sources: sources(['2026-09-01', '2026-09-02', '2026-09-03']) },
+    vasomotor: { text: '有 5 天相关记录：程度以轻为主，自述：夜里出汗。', details: '2026-08-28：潮热，程度轻\n2026-09-03：潮热，程度轻，自述：夜里出汗\n2026-09-05：盗汗，程度轻', state: 'recorded', sources: sources(['2026-08-28', '2026-09-03', '2026-09-05']) },
+    somatic: { text: '记录头痛 2 天、心悸 1 天。', details: '2026-08-30：头痛，程度轻\n2026-09-04：头痛，程度中\n2026-09-06：心慌，程度轻', state: 'recorded', sources: sources(['2026-08-30', '2026-09-04', '2026-09-06']) },
+    genitourinary: missing(),
+    otherSymptoms: missing(),
+    sleep: { text: '睡眠质量以一般为主，夜醒 1 至 2 次。', details: '2026-08-29：睡眠质量一般，夜醒 2 次\n2026-09-05：睡眠质量好，夜醒 1 次', state: 'recorded', sources: sources(['2026-08-29', '2026-09-05']) },
+    mood: { text: '情绪以平静为主，偶有焦虑。', details: '2026-09-02：平静，轻微\n2026-09-04：焦虑，诱因：工作压力', state: 'recorded', sources: sources(['2026-09-02', '2026-09-04']) },
+    weight: { text: '有体重变化记录：增加 1kg，速度缓慢。', details: '2026-09-06：增加，1kg，缓慢', state: 'recorded', sources: sources(['2026-09-06']) },
+    appetite: { text: '食欲正常 4 天。', state: 'recorded', sources: sources(['2026-09-01', '2026-09-03', '2026-09-05', '2026-09-06']) },
+    exercise: { text: '以散步、八段锦为主，每次约 30 分钟。', details: '2026-09-01：散步，30分钟\n2026-09-05：八段锦，40分钟', state: 'recorded', sources: sources(['2026-09-01', '2026-09-05']) },
+    lifestyle: { text: '共 3 天相关记录：三餐规律，饮水充足。', state: 'recorded', sources: sources(['2026-09-01', '2026-09-03', '2026-09-05']) },
+    medicationHistory: { text: '记录服用钙剂。', details: '2026-09-03：钙剂，服用，当前用药情况待确认', state: 'recorded', sources: sources(['2026-09-03']) },
+    lifeImpact: missing(),
+    other: missing(),
+  };
 }
 const asText = (value: unknown, fallback = '') => typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' ? String(value) : fallback;
 function mockDate(text:string){const current=today();const iso=text.match(/\b(20\d{2})-(\d{1,2})-(\d{1,2})\b/);if(iso)return`${iso[1]}-${iso[2].padStart(2,'0')}-${iso[3].padStart(2,'0')}`;const md=text.match(/(\d{1,2})月(\d{1,2})日/);if(md)return`${current.slice(0,4)}-${md[1].padStart(2,'0')}-${md[2].padStart(2,'0')}`;const ago=text.includes('前天')?2:text.includes('昨天')?1:0;if(ago){const date=new Date(`${current}T00:00:00Z`);date.setUTCDate(date.getUTCDate()-ago);return date.toISOString().slice(0,10)}return current}
@@ -146,7 +167,7 @@ const mockServices: FrontendServices = {
     async get(month) { await wait(180); return summaries.find((item) => item.month === month) ?? summaries[0]; },
   },
   reports: {
-    async preview(range) { await wait(220); const preview=mockReportPreview(range); return {...preview,aggregationVersion:'health-fields-1',generatedAt:new Date().toISOString(),fields:buildReportFields([...mockRecordStore.values()].filter(r=>r.date>=preview.range.startDate&&r.date<=preview.range.endDate))}; },
+    async preview(range) { await wait(220); const preview=mockReportPreview(range); return {...preview,aggregationVersion:'mock-static-1',generatedAt:new Date().toISOString(),fields:mockReportFields()}; },
     async coverage(range) { await wait(120); return mockReportCoverage(range); },
     async saveDraft(input) { await wait(160); const id=input.id ?? createClientId(); const draft:ReportDraft={id,range:input.range,snapshot:structuredClone(input.snapshot),overrides:structuredClone(input.overrides),status:'draft',updatedAt:new Date().toISOString()}; mockReportDrafts.set(id,draft); return structuredClone(draft); },
   },

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/toast';
-import { normalizeQuantity, quantityUnits, type QuantityKind } from '../../supabase/functions/_shared/health-units';
+import { normalizeQuantity, quantityUnits, type QuantityKind } from '@/lib/health-units';
 
 const shanghaiToday = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Shanghai' }) as HealthRecord['date'];
 const emptyRecord = (date: string): HealthRecord => ({ date: date as HealthRecord['date'], symptoms: [], medications: [], lifeEvents: [] });
