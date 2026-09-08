@@ -50,17 +50,92 @@ tests/        知识库分块与 SQL 语法测试
 *.md          产品需求、技术方案、接口设计等文档
 ```
 
-## 本地开发
+## 本地开发（新人启动指南）
+
+### 1. 环境准备
+
+- Node.js 22+（前端 `package.json` 要求 >=22.13.0）
+- Git、npm
+- Docker 可选：仅在本地起整套数据库时才需要；日常开发直接连云端 Supabase，无需 Docker
+- Deno 无需单独安装：根目录 `npm install` 会通过 devDependency 装好（跑后端单测用）
+
+### 2. 加入项目
+
+请主开发者把你加入：GitHub 仓库 Collaborator（写代码）、Supabase 组织成员（访问数据库与函数）。加入 Supabase 后，登录 https://supabase.com/dashboard 即可看到本项目（项目 ref：`etjbigieuvjlhrjpxmef`）。
+
+### 3. 安装依赖
 
 ```bash
-# 前端（默认 mock 演示模式；连真实后端把 frontend/.env.local 中 USE_MOCKS 改为 false）
-cd frontend && npm install && npm run dev -p 3002
-
-# 后端（需 Supabase CLI 与 Docker；云端部署见 supabase/ 配置）
-npx supabase start
+# 仓库根目录（后端脚本、Deno、测试工具）
+npm install
+# 前端
+cd frontend && npm install
 ```
 
-> ⚠️ 本仓库是公开的：任何密钥请只放在本地 `.env*` 文件中（已配置忽略规则，提交前另有密钥扫描钩子兜底）。
+### 4. 环境变量（密钥一律不进仓库）
+
+前端 `frontend/.env.local`：
+
+```
+NEXT_PUBLIC_APP_ENV=development
+NEXT_PUBLIC_SUPABASE_URL=            # Supabase 后台 → Project Settings → API → Project URL
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=  # 同上页面 anon public key
+NEXT_PUBLIC_USE_MOCKS=false          # true=纯演示假数据；false=连真实云端（推荐）
+```
+
+后端函数本地调试用 `supabase/.env.local`（`npm run functions:serve` 读取）：
+
+```
+MODEL_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+MODEL_API_KEY=             # 阿里云百炼控制台申请自己的 API Key
+MODEL_CHAT_MODEL=qwen-plus
+MODEL_FAST_MODEL=qwen-flash
+MODEL_EMBEDDING_MODEL=text-embedding-v4
+MODEL_EMBEDDING_DIMENSIONS=1024
+```
+
+根目录 `.env` 仅知识库发布脚本使用，参照 `.env.example` 填写；其中 Supabase service role key 请找主开发者索取，**勿外传、勿提交**。
+
+### 5. 启动前端
+
+```bash
+cd frontend && npm run dev -p 3002
+```
+
+浏览器打开 http://localhost:3002。默认连云端 Supabase；改 `NEXT_PUBLIC_USE_MOCKS=true` 可切纯演示模式（假数据写在 `frontend/lib/services.ts` 的 `mockReportFields()`，与真实统计口径无关）。
+
+### 6. 连接 Supabase（后端 / 数据库）
+
+```bash
+npx supabase login                                        # 用被邀请的 Supabase 账号登录
+npx supabase link --project-ref etjbigieuvjlhrjpxmef       # 会询问数据库密码：Supabase 后台 → Project Settings → Database
+```
+
+- 应用数据库迁移到云端：`npx supabase db push`（迁移文件在 `supabase/migrations/`）
+- 本地调试后端函数：`npm run functions:serve`
+- 部署函数到云端：`npx supabase functions deploy <函数名>`
+
+### 7. 跑测试
+
+```bash
+npm test              # 知识库脚本测试（node）
+npm run test:edge     # 后端共享模块单测（deno）
+npm run check         # 后端函数类型检查（deno）
+```
+
+### 8. 开发与上线流程
+
+1. 从 main 拉新分支开发
+2. 推送分支并开 Pull Request（Vercel 自动生成预览网址）
+3. 审核合并进 main
+4. Vercel 自动构建并上线生产（https://a-second-life.vercel.app），无需手动操作
+
+### 9. 协作约定
+
+- ⚠️ 本仓库是公开的：密钥、内部文档、图片一律不进仓库；密钥只放本地 `.env*` 文件（已配置忽略规则，提交前另有密钥扫描钩子兜底）
+- 单位换算规则有两份，必须同步修改：`frontend/lib/health-units.ts` ⇄ `supabase/functions/_shared/health-units.ts`
+- 就医报告聚合规则只在后端（`supabase/functions/_shared/`），前端只展示不重算
+- 演示模式的报告字段是写死的假数据（`frontend/lib/services.ts` 的 `mockReportFields()`）
 
 ## 当前实现状态（2026-09-05）
 
